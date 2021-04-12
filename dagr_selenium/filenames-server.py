@@ -89,6 +89,11 @@ class LoggersCache():
         del self.__loggers_cache[hostMode]
         return json_response('ok')
 
+    def exists(self, request):
+        params = await request.json()
+        hostMode = params['hostMode']
+        return json_response({'exists': hostMode in self.__loggers_cache})
+
 
 logger_cache = LoggersCache()
 
@@ -431,6 +436,7 @@ def run_app():
     app.router.add_post('/logger/create', logger_cache.create)
     app.router.add_post('/logger/append', logger_cache.handle)
     app.router.add_post('/logger/remove', logger_cache.remove)
+    app.router.add_get('/logger/exists', logger_cache.exists)
     web.run_app(app, host='0.0.0.0', port=os.environ.get('LISTEN_PORT', 3002))
 
 

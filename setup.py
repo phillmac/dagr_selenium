@@ -15,7 +15,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'docopt == 0.6.2',
-        'dagr_revamped @ git+https://github.com/phillmac/dagr_revamped@1684ab43b383f9a00b4e6b8a6b5885302dc33d9a',
+        'dagr_revamped @ git+https://github.com/phillmac/dagr_revamped@bb59eceb03960096a5014772aa6bf5a778346169',
         'selenium==3.141.0',
         'aiofiles==0.6.0',
         'aiohttp==3.7.4.post0'
