@@ -3,6 +3,7 @@ import base64
 import gzip
 import json
 import logging
+import mimetypes
 import os
 from io import BytesIO, StringIO
 from logging.handlers import RotatingFileHandler
@@ -14,6 +15,8 @@ import aiofiles
 import aiofiles.os as aiofiles_os
 from aiohttp import ClientSession, web
 from aiohttp.web_response import json_response
+
+mimetypes.init()
 
 
 class DirsCache():
@@ -52,15 +55,16 @@ class LoggersCache():
     async def create(self, request):
         params = await request.json()
         print(params)
-        hostMode, maxBytes, backupCount, frmt = itemgetter('hostMode', 'maxBytes', 'backupCount', 'frmt')(params)
+        hostMode, maxBytes, backupCount, frmt = itemgetter(
+            'hostMode', 'maxBytes', 'backupCount', 'frmt')(params)
         if hostMode in self.__loggers_cache:
             raise web.HTTPBadRequest(reason='Logger already open')
         fn = f"{hostMode}.dagr.log.txt"
-        handler = RotatingFileHandler(filename=fn, maxBytes=maxBytes, backupCount=backupCount)
+        handler = RotatingFileHandler(
+            filename=fn, maxBytes=maxBytes, backupCount=backupCount)
         handler.setFormatter(logging.Formatter(frmt))
         self.__loggers_cache[hostMode] = handler
         return json_response('ok')
-
 
     async def handle(self, request):
         params = await request.json()
@@ -72,7 +76,6 @@ class LoggersCache():
         record = logging.makeLogRecord(recordParams)
         handler.handle(record)
         return json_response('ok')
-
 
     async def remove(self, request):
         params = await request.json()
@@ -86,7 +89,9 @@ class LoggersCache():
         del self.__loggers_cache[hostMode]
         return json_response('ok')
 
+
 logger_cache = LoggersCache()
+
 
 class BackgroundTask:
     async def run(self, coro, args, callback=None):
@@ -104,6 +109,7 @@ class BackgroundTask:
         loop.run_until_complete(fut)
         loop.close()
 
+
 async def get_fileslist(request):
     params = await request.json()
     path_param = params.get('path', None)
@@ -116,6 +122,7 @@ async def get_fileslist(request):
         return json_response([f.name for f in os.scandir(subdir) if f.is_file()])
     except StopIteration:
         raise web.HTTPBadRequest(reason='not ok: path does not exist')
+
 
 async def get_file_exists(request):
     params = await request.json()
@@ -146,6 +153,7 @@ async def get_file_exists(request):
             await BackgroundTask().run(check_update_fn_cache, (params, subdir, path_param))
     return json_response({'exists': exists})
 
+
 async def check_update_fn_cache(params, subdir, path_param, session=None):
     url = 'http://127.0.0.1:3003/file'
 
@@ -162,13 +170,14 @@ async def check_update_fn_cache(params, subdir, path_param, session=None):
     except Exception as ex:
         print('Failed to check/update cache', ex)
 
-async def update_fn_cache(subdir, path_param, session = None):
+
+async def update_fn_cache(subdir, path_param, session=None):
     t_now = time_ns()
     filenames = [f.name for f in os.scandir(subdir) if f.is_file()]
     t_spent = (time_ns() - t_now) / 1e6
     print('Time loading filenames list', '{:.2f}'.format(t_spent) + 'ms')
 
-    url ='http://127.0.0.1:3003/files'
+    url = 'http://127.0.0.1:3003/files'
     data = {'path': path_param, 'filenames': filenames}
 
     t_now = time_ns()
@@ -180,6 +189,7 @@ async def update_fn_cache(subdir, path_param, session = None):
     t_spent = (time_ns() - t_now) / 1e6
 
     print('Time updating fn cache', '{:.2f}'.format(t_spent) + 'ms')
+
 
 async def fetch_contents(request):
     params = await request.json()
@@ -211,7 +221,6 @@ async def fetch_contents(request):
         return resp
 
 
-
 async def fetch_contents_b(request):
     params = await request.json()
 
@@ -237,9 +246,10 @@ async def fetch_contents_b(request):
     if not dest.exists():
         raise web.HTTPNotFound(reason='not ok: filename does not exist')
     async with aiofiles.open(dest, 'rb') as fh:
-        resp = web.Response(body=await fh.read())
+        resp = web.Response(body=await fh.read(), content_type=mimetypes.guess_type(dest))
         resp.enable_compression()
         return resp
+
 
 async def update_json(request):
     params = await request.json()
@@ -269,6 +279,7 @@ async def update_json(request):
     dest = subdir.joinpath(PurePath(filename).name)
     await save_json(dest, content)
     return json_response('ok')
+
 
 async def update_json_gz(request):
     if request.content_type == 'application/json':
@@ -311,6 +322,7 @@ async def update_json_gz(request):
     await save_json(dest, content)
     return json_response('ok')
 
+
 async def fetch_json(request):
     params = await request.json()
 
@@ -335,9 +347,10 @@ async def fetch_json(request):
     dest = subdir.joinpath(PurePath(filename).name)
     if not dest.exists():
         raise web.HTTPNotFound(reason='not ok: filename not found')
-    resp =  json_response(await load_json(dest))
+    resp = json_response(await load_json(dest))
     resp.enable_compression()
     return resp
+
 
 async def buffered_file_write(fpath, content):
     buffer = StringIO()
@@ -348,6 +361,7 @@ async def buffered_file_write(fpath, content):
         await fh.write(buffer.read())
     await aiofiles_os.rename(temp, fpath)
 
+
 async def backup_cache_file(fpath):
     backup = fpath.with_suffix('.bak')
     if fpath.exists():
@@ -355,15 +369,18 @@ async def backup_cache_file(fpath):
             await aiofiles_os.remove(backup)
         await aiofiles_os.rename(fpath, backup)
 
+
 async def save_json(fpath, data, do_backup=True):
     if do_backup:
         await backup_cache_file(fpath)
     await buffered_file_write(fpath, data)
 
+
 async def load_json(fpath):
     async with aiofiles.open(fpath, 'r') as fh:
         buffer = StringIO(await fh.read())
         return json.load(buffer)
+
 
 async def replace(request):
     params = await request.json()
@@ -399,12 +416,6 @@ async def replace(request):
     await aiofiles_os.rename(newfn, oldfn)
 
     return json_response('ok')
-
-
-
-
-
-
 
 
 def run_app():
