@@ -251,7 +251,8 @@ async def fetch_contents_b(request):
     if not dest.exists():
         raise web.HTTPNotFound(reason='not ok: filename does not exist')
     async with aiofiles.open(dest, 'rb') as fh:
-        resp = web.Response(body=await fh.read(), content_type=mimetypes.guess_type(dest))
+        ct, _enc = mimetypes.guess_type(dest)
+        resp = web.Response(body=await fh.read(), content_type=ct)
         resp.enable_compression()
         return resp
 
