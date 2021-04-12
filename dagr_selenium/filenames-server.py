@@ -89,7 +89,7 @@ class LoggersCache():
         del self.__loggers_cache[hostMode]
         return json_response('ok')
 
-    def exists(self, request):
+    async def exists(self, request):
         params = await request.json()
         hostMode = params['hostMode']
         return json_response({'exists': hostMode in self.__loggers_cache})
