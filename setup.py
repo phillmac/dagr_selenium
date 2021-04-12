@@ -21,6 +21,7 @@ setup(
         'aiohttp==3.7.4.post0'
     ],
     extras_require={
+        'calmjs':  ["calmjs==3.3.1"]
     },
     classifiers=[
         'Programming Language :: Python :: 3',
