@@ -420,7 +420,7 @@ def run_app():
     app.router.add_post('/logger/create', logger_cache.create)
     app.router.add_post('/logger/append', logger_cache.handle)
     app.router.add_post('/logger/remove', logger_cache.remove)
-    web.run_app(app, host='0.0.0.0', port=3002)
+    web.run_app(app, host='0.0.0.0', port=os.environ.get('LISTEN_PORT', 3002))
 
 
 if __name__ == '__main__':
