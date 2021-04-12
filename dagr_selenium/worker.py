@@ -6,8 +6,8 @@ from time import sleep
 
 import requests
 # from dagr_revamped.DAGRDeviationProcessorFNS import DAGRDeviationProcessorFNS
-from functions import check_stop_file, flush_errors_to_queue, manager
-from QueueItem import QueueItem
+from .functions import check_stop_file, flush_errors_to_queue, manager
+from .QueueItem import QueueItem
 
 manager.set_mode('worker')
 manager.init_logging()

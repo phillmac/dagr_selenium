@@ -2,7 +2,7 @@ import logging
 from os import environ
 
 
-from functions import config, manager, monitor_watchlist
+from .functions import config, manager, monitor_watchlist
 
 env_level = environ.get('dagr.watchlist.logging.level', None)
 level_mapped = config.map_log_level(

@@ -12,8 +12,8 @@ from aiohttp.web_response import json_response
 from dagr_revamped.lib import DagrException
 from dagr_revamped.utils import artist_from_url, convert_queue
 
-from functions import config, load_bulk, manager, update_bulk_galleries
-from QueueItem import QueueItem
+from .functions import config, load_bulk, manager, update_bulk_galleries
+from .QueueItem import QueueItem
 
 queue = asyncio.PriorityQueue()
 

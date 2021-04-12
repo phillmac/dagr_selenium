@@ -1,6 +1,6 @@
 import logging
 
-from functions import manager, rip_favs
+from .functions import manager, rip_favs
 
 deviant = input('Enter username: ')
 full_crawl = input('Full crawl?: ').lower().startswith('y')

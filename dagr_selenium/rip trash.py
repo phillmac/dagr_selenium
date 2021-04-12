@@ -1,7 +1,7 @@
 import logging
 from os import environ
 
-from functions import config, manager, rip_trash
+from .functions import config, manager, rip_trash
 
 full_crawl = input('Full crawl?: ').lower().startswith('y')
 resort = input('Resort?: ').lower().startswith('y')

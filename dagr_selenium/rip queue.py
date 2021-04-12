@@ -1,7 +1,7 @@
 deviant = input('Enter username: ')
 mode = input('Enter mode: ')
 
-from functions import rip_queue, manager
+from .functions import rip_queue, manager
 
 manager.set_mode('rip_queue')
 manager.init_logging()

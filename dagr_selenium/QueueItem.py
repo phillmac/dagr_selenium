@@ -1,4 +1,4 @@
-from functions import rip, update_bookmarks
+from .functions import rip, update_bookmarks
 
 
 class QueueItem():
