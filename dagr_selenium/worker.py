@@ -5,10 +5,9 @@ from os import environ
 from pprint import pformat
 from time import sleep
 
-import requests
 
 # from dagr_revamped.DAGRDeviationProcessorFNS import DAGRDeviationProcessorFNS
-from .functions import check_stop_file, config, flush_errors_to_queue, manager
+from .functions import check_stop_file, config, flush_errors_to_queue, manager, session
 from .QueueItem import QueueItem
 
 env_level = environ.get('dagr.worker.logging.level', None)
@@ -20,10 +19,9 @@ manager.init_logging(level_mapped)
 
 logger = logging.getLogger(__name__)
 
-
 async def fetch_item():
     try:
-        resp = requests.get('http://192.168.20.50:3002/item')
+        resp = session.get('http://192.168.20.50:3002/item')
         resp.raise_for_status()
         return QueueItem(**(resp.json()))
     except:

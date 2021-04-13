@@ -1,35 +1,28 @@
 import logging
 import os
-import socket
 from itertools import islice
 from pathlib import Path
 from pprint import pformat, pprint
 from time import sleep, time
 
-import requests
 from dagr_revamped.dagr_logging import log
 from dagr_revamped.DAGRCache import DAGRCache, DagrCacheLockException
 from dagr_revamped.DAGRHTTPIo import DAGRHTTPIo
 from dagr_revamped.DAGRManager import DAGRManager
 from dagr_revamped.lib import DagrException
+from dagr_revamped.tcpKeepAliveSession import tcpKeepAliveSession
 from dagr_revamped.utils import (artist_from_url, dump_html, load_json,
                                  save_json)
 from selenium.common.exceptions import (NoSuchElementException,
                                         StaleElementReferenceException)
 from selenium.common.exceptions import \
     TimeoutException as SeleniumTimeoutException
-from urllib3.connection import HTTPConnection
-
-TCP_KEEPALIVE = 0x10
-HTTPConnection.default_socket_options = HTTPConnection.default_socket_options + [
-    (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
-    (socket.IPPROTO_TCP, TCP_KEEPALIVE, 60),
-]
-
+from urllib3.util.retry import Retry
 
 click_sleep_time = 0.300
 monitor_sleep = 600
 
+session = tcpKeepAliveSession()
 
 manager = DAGRManager()
 config = manager.get_config()
@@ -373,7 +366,7 @@ def queue_items(mode, deviants, priority=100, full_crawl=False):
         logger.info(
             f"Sending {mode} {deviantschunk} to queue manager")
         try:
-            r = requests.post(
+            r = session.post(
                 'http://192.168.20.50:3002/items', json=items)
             r.raise_for_status()
         except:
@@ -417,7 +410,7 @@ def flush_errors_to_queue():
             pass
         items.append(i)
     try:
-        r = requests.post('http://192.168.20.50:3002/items', json=items)
+        r = session.post('http://192.168.20.50:3002/items', json=items)
         r.raise_for_status()
         cache.remove(cache_slug, errors)
     except:
