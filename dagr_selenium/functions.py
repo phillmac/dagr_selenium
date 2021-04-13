@@ -10,7 +10,7 @@ from dagr_revamped.DAGRCache import DAGRCache, DagrCacheLockException
 from dagr_revamped.DAGRHTTPIo import DAGRHTTPIo
 from dagr_revamped.DAGRManager import DAGRManager
 from dagr_revamped.lib import DagrException
-from dagr_revamped.tcpKeepAliveSession import TCPKeepAliveSession
+from dagr_revamped.TCPKeepAliveSession import TCPKeepAliveSession
 from dagr_revamped.utils import (artist_from_url, dump_html, load_json,
                                  save_json)
 from selenium.common.exceptions import (NoSuchElementException,
