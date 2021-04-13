@@ -1,16 +1,22 @@
 import asyncio
 import logging
 from copy import copy
+from os import environ
 from pprint import pformat
 from time import sleep
 
 import requests
+
 # from dagr_revamped.DAGRDeviationProcessorFNS import DAGRDeviationProcessorFNS
-from .functions import check_stop_file, flush_errors_to_queue, manager
+from .functions import check_stop_file, config, flush_errors_to_queue, manager
 from .QueueItem import QueueItem
 
+env_level = environ.get('dagr.worker.logging.level', None)
+level_mapped = config.map_log_level(
+    int(env_level)) if not env_level is None else None
+
 manager.set_mode('worker')
-manager.init_logging()
+manager.init_logging(level_mapped)
 
 logger = logging.getLogger(__name__)
 
