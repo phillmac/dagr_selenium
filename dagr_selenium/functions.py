@@ -1,5 +1,6 @@
 import logging
 import os
+import socket
 from itertools import islice
 from pathlib import Path
 from pprint import pformat, pprint
@@ -17,6 +18,14 @@ from selenium.common.exceptions import (NoSuchElementException,
                                         StaleElementReferenceException)
 from selenium.common.exceptions import \
     TimeoutException as SeleniumTimeoutException
+from urllib3.connection import HTTPConnection
+
+TCP_KEEPALIVE = 0x10
+HTTPConnection.default_socket_options = HTTPConnection.default_socket_options + [
+    (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
+    (socket.IPPROTO_TCP, TCP_KEEPALIVE, 60),
+]
+
 
 click_sleep_time = 0.300
 monitor_sleep = 600
@@ -68,8 +77,9 @@ def fetch_watchlist_item():
                     browser.click_element(button)
                     browser.wait_stale(tickbox, delay=10)
                 except SeleniumTimeoutException as ex:
-                    logger.warning(f"Timeout waiting for remove button click tries:{tries}")
-                    tries +=1
+                    logger.warning(
+                        f"Timeout waiting for remove button click tries:{tries}")
+                    tries += 1
                     last = ex
                 except NoSuchElementException:
                     break
@@ -90,16 +100,19 @@ def find_remove_bttn(context):
         if is_remove_bttn(bttn):
             return bttn
 
+
 def find_tickbox_parent(context):
     for label in context.find_elements_by_tag_name('label'):
         for inp in label.find_elements_by_tag_name('input'):
             inp_type = inp.get_attribute('type')
-            if  inp_type == 'checkbox':
+            if inp_type == 'checkbox':
                 return label
+
 
 def is_remove_bttn(bttn):
     innerHTML = bttn.get_attribute('innerHTML')
     return 'Remove' in innerHTML and not bttn.text.lower() == 'removed'
+
 
 def crawl_watchlist():
     browser = manager.get_browser()
@@ -169,7 +182,8 @@ def sort_pages(to_sort, resort=False, queued_only=True, flush=True):
             addst = time()
             with DAGRCache.with_queue_only(config, 'gallery', deviant) as cache:
                 base_dir_exists = cache.base_dir.exists()
-                logger.log(level=15, msg=f"Sorting pages into {cache.base_dir}, dir exists: {base_dir_exists}")
+                logger.log(
+                    level=15, msg=f"Sorting pages into {cache.base_dir}, dir exists: {base_dir_exists}")
                 if not base_dir_exists:
                     cache.base_dir.make_dirs(parents=True)
                     logger.log(level=15, msg=f"Created dir {cache.base_dir}")
