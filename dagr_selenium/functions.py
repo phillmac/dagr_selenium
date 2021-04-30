@@ -104,6 +104,7 @@ def find_tickbox_parent(context):
 def find_load_comments(context):
     for btn in context.find_elements_by_tag_name('button'):
         if 'load previous comments' in btn.get_attribute('innerText').lower():
+            logger.info('Found load comments')
             return btn
 
 def is_remove_bttn(bttn):
