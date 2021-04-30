@@ -107,6 +107,12 @@ def find_load_comments(context):
             logger.info('Found load comments')
             return btn
 
+def find_load_more(context):
+    for btn in context.find_elements_by_tag_name('button'):
+        if 'load more' in btn.get_attribute('innerText').lower():
+            logger.info('Found load more')
+            return btn
+
 def is_remove_bttn(bttn):
     innerHTML = bttn.get_attribute('innerHTML')
     return 'Remove' in innerHTML and not bttn.text.lower() == 'removed'
@@ -283,6 +289,8 @@ def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_
         load_comments = find_load_comments(browser)
         if load_comments:
             browser.click_element(load_comments)
+        while load_more := find_load_more(browser):
+            browser.click(load_more)
 
     def dump_callback(page, content):
         if kwargs.get('load_more', None):
