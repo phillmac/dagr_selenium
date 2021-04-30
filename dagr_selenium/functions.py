@@ -290,7 +290,7 @@ def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_
         if load_comments:
             browser.click_element(load_comments)
         while load_more := find_load_more(browser):
-            browser.click(load_more)
+            browser.click_element(load_more)
 
     def dump_callback(page, content):
         if kwargs.get('load_more', None):
