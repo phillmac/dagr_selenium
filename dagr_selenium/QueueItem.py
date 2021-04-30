@@ -54,6 +54,8 @@ class QueueItem():
             'gallery_featured': lambda: rip(**self.__params),
             'search': lambda: rip(**self.__params),
             'search_html': lambda: rip(**self.__params),
+            'tag': lambda: rip(**self.__params),
+            'tag_html': lambda: rip(**self.__params),
             'art': lambda: update_bookmarks('art', self.deviant, self.mval)
         }.get(self.mode)
         if handler is None:
