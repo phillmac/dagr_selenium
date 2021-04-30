@@ -32,6 +32,8 @@ logger = logging.getLogger(__name__)
 regexes = {k: re.compile(v)
            for k, v in config.get('deviantart.regexes').items()}
 
+nd_modes = config.get('deviantart', 'ndmodes').split(',')
+
 queue_slug = 'queue'
 cache = manager.get_cache()
 
@@ -77,7 +79,7 @@ def detect_mode(url):
 
 def detect_mval(mode, url):
     parts = PurePosixPath(url).parts
-    slice_count = {'gallery': False, 'favs': False, 'gallery_featured': False,
+    slice_count = {'tag':0, 'gallery': False, 'favs': False, 'gallery_featured': False,
                    'favs_featured': False, 'art': 1, 'album': 2, 'collection': 2}.get(mode)
     if slice_count is False:
         return None
@@ -112,7 +114,7 @@ async def add_url(request):
 
         _artist_url_p, deviant, _shortname = artist_from_url(url, mode)
 
-        if not deviant:
+        if not mode in nd_modes and not deviant:
             return web.HTTPBadRequest(reason='not ok: deviant missing')
 
         deviant = await resolve_deviant(deviant)
