@@ -44,11 +44,16 @@ class QueueItem():
             'gallery': lambda: rip(**self.__params),
             'gallery_html': lambda: rip(**self.__params),
             'favs': lambda: rip(**self.__params),
+            'favs_html': lambda: rip(**self.__params),
             'scraps': lambda: rip(**self.__params),
             'collection': lambda: rip(**self.__params),
+            'collection_html': lambda: rip(**self.__params),
             'album': lambda: rip(**self.__params),
+            'album_html': lambda: rip(**self.__params),
             'favs_featured': lambda: rip(**self.__params),
             'gallery_featured': lambda: rip(**self.__params),
+            'search': lambda: rip(**self.__params),
+            'search_html': lambda: rip(**self.__params),
             'art': lambda: update_bookmarks('art', self.deviant, self.mval)
         }.get(self.mode)
         if handler is None:

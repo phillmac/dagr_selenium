@@ -101,6 +101,10 @@ def find_tickbox_parent(context):
             if inp_type == 'checkbox':
                 return label
 
+def find_load_comments(context):
+    for btn in context.find_elements_by_tag_name('button'):
+        if 'load previous comments' in btn.get_attribute('innerText').lower():
+            return btn
 
 def is_remove_bttn(bttn):
     innerHTML = bttn.get_attribute('innerHTML')
@@ -229,9 +233,9 @@ def gallery_stats(deviant):
     cache_stats('gallery', deviant)
 
 
-def crawl_pages(mode, deviant, mval=None, full_crawl=False, crawl_offset=None):
+def crawl_pages(mode, deviant, **kwargs):
     crawler = manager.get_crawler()
-    return crawler.crawl('', mode, deviant, mval=mval, full_crawl=full_crawl, crawl_offset=crawl_offset)
+    return crawler.crawl('', mode, deviant, **kwargs)
 
 
 def crawl_trash(full_crawl=False):
@@ -267,22 +271,29 @@ def rip_pages(cache, pages, full_crawl=False, disable_filter=False, callback=Non
         cache, pages, disable_filter=disable_filter, callback=callback, **kwargs)
     cache.save_extras(full_crawl)
 
-
-def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_offset=None, **kwargs):
+def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_offset=None, no_crawl=None, **kwargs):
     callback = None
 
     if crawl_offset:
         logger.log(level=15, msg=f"crawl_offset: {crawl_offset}")
 
-    def dump_callback(page, content): return dump_html(
-        cache.base_dir.joinpath('.html'), page, content)
-    if mode == 'gallery_html':
-        mode = 'gallery'
-        callback = dump_callback
+    def load_comments():
+        browser = manager.get_browser()
+        load_comments = find_load_comments(browser)
+        if load_comments:
+            browser.click_element(load_comments)
 
+    def dump_callback(page, content):
+        if kwargs.get('load_more', None):
+            load_comments()
+        dump_html(cache.base_dir.joinpath('.html'), page, content)
+
+    if '_html' in mode:
+        mode = mode.replace('_html', '')
+        callback = dump_callback
     try:
         pages = crawl_pages(mode, deviant, mval=mval,
-                            full_crawl=full_crawl, crawl_offset=crawl_offset)
+                            full_crawl=full_crawl, crawl_offset=crawl_offset, no_crawl=no_crawl)
         with DAGRCache.with_queue_only(config, mode, deviant, mval, dagr_io=DAGRHTTPIo) as cache:
             if pages:
                 enqueued = cache.update_queue(pages)

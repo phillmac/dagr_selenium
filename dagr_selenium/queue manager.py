@@ -54,12 +54,12 @@ class waitingCount():
 waiting_count = waitingCount()
 
 
-async def add_to_queue(mode, deviant=None, mval=None, priority=100, full_crawl=False, resolved=False, disable_filter=False, verify_exists=None, verify_best=None, no_crawl=None, crawl_offset=None):
+async def add_to_queue(mode, deviant=None, mval=None, priority=100, full_crawl=False, resolved=False, disable_filter=False, verify_exists=None, verify_best=None, no_crawl=None, crawl_offset=None, load_more=None):
     item = QueueItem(mode=mode, deviant=deviant, mval=mval,
                      priority=priority, full_crawl=full_crawl, resolved=resolved,
                      disable_filter=disable_filter, verify_exists=verify_exists,
                      verify_best=verify_best, no_crawl=no_crawl,
-                     crawl_offset=crawl_offset)
+                     crawl_offset=crawl_offset, load_more=load_more)
     params = item.params
     logger.info(f"Adding {params} to queue")
     bg_task = BackgroundTask()
