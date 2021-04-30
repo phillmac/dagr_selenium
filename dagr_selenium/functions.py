@@ -299,6 +299,8 @@ def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_
                 enqueued = cache.update_queue(pages)
                 logger.info(f"Add {enqueued} pages to {deviant}")
             pages.update(cache.get_queue())
+            if no_crawl:
+                pages.update(cache.existing_pages)
             exclude = [*cache.get_premium(), *cache.get_httperrors()]
             pages = [p for p in pages if not p in exclude]
             rip_pages(cache, pages, full_crawl,
