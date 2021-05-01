@@ -3,8 +3,8 @@ from os import environ
 
 from .functions import config, manager, rip_trash
 
-full_crawl = input('Full crawl?: ').lower().startswith('y')
-resort = input('Resort?: ').lower().startswith('y')
+full_crawl = environ.get('FULL_CRAWL', input('Full crawl?: ')).lower().startswith('y')
+resort = environ.get('RESORT', input('Resort?: ')).lower().startswith('y')
 
 env_level = environ.get('dagr.riptrash.logging.level', None)
 level_mapped = config.map_log_level(
