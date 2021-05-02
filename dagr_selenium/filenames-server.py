@@ -420,12 +420,15 @@ async def replace(request):
     oldfn = subdir.joinpath(PurePath(filename).name)
     newfn = subdir.joinpath(PurePath(new_filename).name)
 
-    if oldfn.exists():
-        await aiofiles_os.remove(oldfn)
+    if newfn.exists():
+        if oldfn.exists():
+            await aiofiles_os.remove(oldfn)
 
-    await aiofiles_os.rename(newfn, oldfn)
+        await aiofiles_os.rename(newfn, oldfn)
 
-    return json_response('ok')
+        return json_response('ok')
+    raise web.HTTPBadRequest(reason='not ok: filename does not exist')
+    
 
 
 def run_app():
