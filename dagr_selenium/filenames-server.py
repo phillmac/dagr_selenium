@@ -432,7 +432,7 @@ async def replace(request):
 
 
 def run_app():
-    app = web.Application()
+    app = web.Application(client_max_size=1024**2 * 100)
     app.router.add_get('/json', fetch_json)
     app.router.add_get('/file_contents', fetch_contents)
     app.router.add_get('/file_contents_b', fetch_contents_b)
