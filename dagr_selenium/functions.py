@@ -11,8 +11,8 @@ from dagr_revamped.DAGRHTTPIo import DAGRHTTPIo
 from dagr_revamped.DAGRManager import DAGRManager
 from dagr_revamped.lib import DagrException
 from dagr_revamped.TCPKeepAliveSession import TCPKeepAliveSession
-from dagr_revamped.utils import (artist_from_url, dump_html, load_json,
-                                 save_json)
+from dagr_revamped.utils import (artist_from_url, dump_html, get_html_name,
+                                 load_json, save_json)
 from selenium.common.exceptions import (NoSuchElementException,
                                         StaleElementReferenceException)
 from selenium.common.exceptions import \
@@ -296,7 +296,9 @@ def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_
         if kwargs.get('load_more', None):
             load_comments()
         try:
-            dump_html(cache.base_dir.joinpath('.html'), page, content)
+            html_name = get_html_name(cache.base_dir.joinpath('.html'), page)
+            if not cache.cache_io.exists(html_name):
+                dump_html(html_name, page, content)
         except:
             logger.exception('Error while dumping html')
 
