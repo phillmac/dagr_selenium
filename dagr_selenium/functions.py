@@ -295,7 +295,10 @@ def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_
     def dump_callback(page, content):
         if kwargs.get('load_more', None):
             load_comments()
-        dump_html(cache.base_dir.joinpath('.html'), page, content)
+        try:
+            dump_html(cache.base_dir.joinpath('.html'), page, content)
+        except:
+            logger.exception('Error while dumping html')
 
     if '_html' in mode:
         mode = mode.replace('_html', '')
