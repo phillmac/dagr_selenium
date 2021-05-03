@@ -103,6 +103,7 @@ async def add_url(request):
     url = post_contents.get('url')
     priority = post_contents.get('priority', 100)
     full_crawl = post_contents.get('full_crawl', False)
+    deviant = None
 
     if url is None:
         return web.HTTPBadRequest(reason='not ok: url missing')
@@ -112,12 +113,11 @@ async def add_url(request):
         if mode is None:
             raise NotImplementedError(f"Unable to get mode for url {url}")
 
-        _artist_url_p, deviant, _shortname = artist_from_url(url, mode)
-
-        if not mode in nd_modes and not deviant:
-            return web.HTTPBadRequest(reason='not ok: deviant missing')
-
-        deviant = await resolve_deviant(deviant)
+        if not mode in nd_modes:
+            _artist_url_p, deviant, _shortname = artist_from_url(url, mode)
+            if not deviant:
+                return web.HTTPBadRequest(reason='not ok: deviant missing')
+            deviant = await resolve_deviant(deviant)
 
         mval = detect_mval(mode, url)
         await add_to_queue(
