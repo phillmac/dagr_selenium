@@ -135,7 +135,7 @@ async def add_url(request):
         logger.info('Finished add_url request')
         return web.Response(text='ok')
     except NotImplementedError:
-        logger.warn('Unable to handle url:', exc_info=True)
+        logger.warning('Unable to handle url:', exc_info=True)
         return web.HTTPBadRequest(reason='not ok: unable to handle url')
 
 
