@@ -77,8 +77,9 @@ async def add_to_queue(mode, deviant=None, mval=None, priority=100, full_crawl=F
 def detect_mode(url):
     for p in range(regex_max_priority):
         for mode in regexes:
+            logger.log(level=15, msg=f"Trying regex priority {p}")
             if regex_priorities[mode] == p:
-                logger.info(f"Trying regex for {mode}")
+                logger.log(level=15, msg=f"Trying regex for {mode}")
                 if regexes[mode].match(url):
                     return mode
     return None
