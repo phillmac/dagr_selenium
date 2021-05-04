@@ -32,6 +32,10 @@ logger = logging.getLogger(__name__)
 regexes = {k: re.compile(v)
            for k, v in config.get('deviantart.regexes').items()}
 
+regex_priorities = config.get('deviantart.regexes.priorities')
+
+regex_max_priority = config.get('deviantart.regexes.params', 'maxpriority')
+
 nd_modes = config.get('deviantart', 'ndmodes').split(',')
 
 queue_slug = 'queue'
@@ -71,9 +75,10 @@ async def add_to_queue(mode, deviant=None, mval=None, priority=100, full_crawl=F
 
 
 def detect_mode(url):
-    for mode in regexes:
-        if regexes[mode].match(url):
-            return mode
+    for p in range(regex_max_priority):
+        for mode in regexes:
+            if regex_priorities[mode] == p and regexes[mode].match(url):
+                return mode
     return None
 
 
