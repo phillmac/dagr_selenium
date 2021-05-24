@@ -16,7 +16,7 @@ async def add_url(request):
 def run_app():
     app = web.Application()
     app.router.add_post('/url', add_url)
-    web.run_app(app, host='192.168.42.226', port=3002)
+    web.run_app(app, host='0.0.0.0', port=3002)
 
 if __name__ == '__main__':
     print('Staring http server')
