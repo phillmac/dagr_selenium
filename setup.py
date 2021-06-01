@@ -21,7 +21,9 @@ setup(
         'aiohttp==3.7.4.post0'
     ],
     extras_require={
-        'calmjs':  ["calmjs==3.3.1"]
+        'calmjs':  ['calmjs==3.3.1'],
+        'easywebdav': ['easywebdav==1.2.0'],
+        'full': ['calmjs', 'easywebdav']
     },
     classifiers=[
         'Programming Language :: Python :: 3.8',
