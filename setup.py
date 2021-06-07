@@ -14,7 +14,8 @@ setup(
     url='https://github.com/phillmac/dagr_selenium',
     packages=find_packages(),
     install_requires=[
-        'docopt == 0.6.2',
+        'docopt==0.6.2',
+        'python-dotenv==0.17.1',
         'dagr_revamped @ git+https://github.com/phillmac/dagr_revamped@0.2.74-dev.0',
         'selenium==3.141.0',
         'aiofiles==0.6.0',
