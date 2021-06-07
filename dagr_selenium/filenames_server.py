@@ -361,7 +361,7 @@ async def write_file(request):
             'content': set_content
         }
 
-        while field := reader.next():
+        while field := await reader.next():
             await field_actions[field.name](field)
 
         path_param = params.get('path', None)
