@@ -9,6 +9,8 @@ from io import BytesIO, StringIO
 from logging.handlers import RotatingFileHandler
 from operator import itemgetter
 from pathlib import Path, PurePath
+from shutil import copyfile
+from tempfile import TemporaryFile
 from time import time_ns
 
 import aiofiles
@@ -337,6 +339,56 @@ async def update_json_gz(request):
     return json_response('ok')
 
 
+async def write_file(request):
+    with TemporaryFile(dir='/dev/shm') as tmp:
+
+        reader = await request.multipart()
+
+        params = dict()
+        params['size'] = 0
+
+        async def set_params(f):
+            params.update(await f.json())
+
+        async def set_content(f):
+            while chunk := await field.read_chunk():
+                params['size'] += len(chunk)
+                tmp.write(chunk)
+            tmp.seek(0)
+
+        field_actions = {
+            'params': set_params,
+            'content': set_content
+        }
+
+        while field := reader.next():
+            await field_actions[field.name](field)
+
+        path_param = params.get('path', None)
+        filename = params.get('filename', None)
+
+        print({'path': path_param, 'filename': filename,
+              'size': params['size']})
+
+        if path_param is None:
+            raise web.HTTPBadRequest(reason='not ok: path param missing')
+
+        if filename is None:
+            raise web.HTTPBadRequest(reason='not ok: filename param missing')
+
+        subdir = None
+
+        try:
+            subdir = dirs_cache.get_subdir(path_param)
+        except StopIteration:
+            raise web.HTTPBadRequest(reason='not ok: path does not exist')
+
+        dest = subdir.joinpath(PurePath(filename).name)
+        copyfile(tmp, dest)
+
+        return json_response('ok')
+
+
 async def fetch_json(request):
     params = await request.json()
 
@@ -443,7 +495,7 @@ def run_app():
     app.router.add_get('/file_exists', get_file_exists)
     app.router.add_post('/json', update_json)
     app.router.add_post('/json_gz', update_json_gz)
-    # app.router.add_post('/file', write_file)
+    app.router.add_post('/file', write_file)
     app.router.add_post('/replace', replace)
     app.router.add_post('/logger/create', logger_cache.create)
     app.router.add_post('/logger/append', logger_cache.handle)
