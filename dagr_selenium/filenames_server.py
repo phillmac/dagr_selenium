@@ -383,7 +383,7 @@ async def write_file(request):
         except StopIteration:
             raise web.HTTPBadRequest(reason='not ok: path does not exist')
 
-        with subdir.joinpath(PurePath(filename).name) as dest:
+        with subdir.joinpath(PurePath(filename).name).open('wb') as dest:
             copyfileobj(tmp, dest)
 
         return json_response('ok')
