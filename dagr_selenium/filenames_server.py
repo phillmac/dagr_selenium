@@ -440,7 +440,7 @@ def run_app():
     app.router.add_get('/file_exists', get_file_exists)
     app.router.add_post('/json', update_json)
     app.router.add_post('/json_gz', update_json_gz)
-    app.router.add_post('/file', write_file)
+    # app.router.add_post('/file', write_file)
     app.router.add_post('/replace', replace)
     app.router.add_post('/logger/create', logger_cache.create)
     app.router.add_post('/logger/append', logger_cache.handle)
