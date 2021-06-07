@@ -9,7 +9,7 @@ from io import BytesIO, StringIO
 from logging.handlers import RotatingFileHandler
 from operator import itemgetter
 from pathlib import Path, PurePath
-from shutil import copyfile
+from shutil import copyfileobj
 from tempfile import TemporaryFile
 from time import time_ns
 
@@ -383,8 +383,8 @@ async def write_file(request):
         except StopIteration:
             raise web.HTTPBadRequest(reason='not ok: path does not exist')
 
-        dest = subdir.joinpath(PurePath(filename).name)
-        copyfile(tmp, dest)
+        with subdir.joinpath(PurePath(filename).name) as dest:
+            copyfileobj(tmp, dest)
 
         return json_response('ok')
 
