@@ -15,6 +15,9 @@ import aiofiles
 import aiofiles.os as aiofiles_os
 from aiohttp import ClientSession, web
 from aiohttp.web_response import json_response
+from dotenv import load_dotenv
+
+load_dotenv()
 
 mimetypes.init()
 
@@ -160,7 +163,7 @@ async def get_file_exists(request):
 
 
 async def check_update_fn_cache(params, subdir, path_param, session=None):
-    url = 'http://127.0.0.1:3003/file'
+    url = os.environ.get('FETCH_CACHE_URL', 'http://127.0.0.1:3003/file')
 
     try:
         if session is None:
@@ -182,7 +185,8 @@ async def update_fn_cache(subdir, path_param, session=None):
     t_spent = (time_ns() - t_now) / 1e6
     print('Time loading filenames list', '{:.2f}'.format(t_spent) + 'ms')
 
-    url = 'http://127.0.0.1:3003/files'
+    url = os.environ.get('UPDATE_CACHE_URL', 'http://127.0.0.1:3003/files')
+
     data = {'path': path_param, 'filenames': filenames}
 
     t_now = time_ns()
@@ -428,7 +432,6 @@ async def replace(request):
 
         return json_response('ok')
     raise web.HTTPBadRequest(reason='not ok: filename does not exist')
-    
 
 
 def run_app():
