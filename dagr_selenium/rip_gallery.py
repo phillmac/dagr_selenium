@@ -1,12 +1,19 @@
 import logging
 
-from .functions import manager, rip_gallery
+from .functions import config, manager, rip_gallery
+
+from os import environ
 
 deviant = input('Enter username: ')
-full_crawl = input('Full crawl?: ').lower().startswith('y')
+full_crawl = (environ['FULL_CRAWL'] if environ['FULL_CRAWL']
+              else input('Full crawl?: ')).lower().startswith('y')
+
+env_level = environ.get('dagr.rip_gallery.logging.level', None)
+level_mapped = config.map_log_level(
+    int(env_level)) if not env_level is None else None
 
 manager.set_mode('rip_gallery')
-manager.init_logging()
+manager.init_logging(level_mapped)
 
 logging.getLogger(__name__).info(f"Full crawl: {full_crawl}")
 
