@@ -19,5 +19,5 @@ logging.getLogger(__name__).info(f"Full crawl: {full_crawl}")
 
 with manager.get_dagr():
     manager.get_browser().do_login()
-    rip('gallery_html', deviant, full_crawl=full_crawl)
+    rip('gallery_html', deviant, full_crawl=full_crawl, load_more=True, disable_filter=True)
 logging.shutdown()
