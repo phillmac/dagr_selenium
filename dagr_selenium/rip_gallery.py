@@ -5,7 +5,7 @@ from .functions import config, manager, rip_gallery
 from os import environ
 
 deviant = input('Enter username: ')
-full_crawl = (environ['FULL_CRAWL'] if environ['FULL_CRAWL']
+full_crawl = (environ['FULL_CRAWL'] if environ.get('FULL_CRAWL', None)
               else input('Full crawl?: ')).lower().startswith('y')
 
 env_level = environ.get('dagr.rip_gallery.logging.level', None)
