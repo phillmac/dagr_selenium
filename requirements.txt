@@ -5,7 +5,7 @@ async-timeout==3.0.1
 beautifulsoup4==4.9.3
 brotlipy==0.7.0
 cchardet==2.1.7
-dagr-revamped @ git+https://github.com/phillmac/dagr_revamped@0.2.79-dev.1
+dagr-revamped @ git+https://github.com/phillmac/dagr_revamped@0.2.79-dev.2
 deviantart @ git+https://github.com/phillmac/deviantart@c21ce195b466618ae16a9146412b3b713be71ef5
 docopt==0.6.2
 lxml==4.6.3
