@@ -1,3 +1,5 @@
+from email.utils import parsedate
+from time import mktime
 import asyncio
 import base64
 import gzip
@@ -8,6 +10,7 @@ import os
 from io import BytesIO, StringIO
 from logging.handlers import RotatingFileHandler
 from operator import itemgetter
+from os import utime
 from pathlib import Path, PurePath
 from shutil import copyfileobj
 from tempfile import TemporaryFile
@@ -339,6 +342,39 @@ async def update_json_gz(request):
     return json_response('ok')
 
 
+async def update_time(request):
+    params = await request.json()
+
+    path_param = params.get('path', None)
+    filename = params.get('filename', None)
+    mtime = params.get('mtime', None)
+
+    print(params)
+
+    if path_param is None:
+        raise web.HTTPBadRequest(reason='not ok: path param missing')
+
+    if filename is None:
+        raise web.HTTPBadRequest(reason='not ok: filename param missing')
+
+    if mtime is None:
+        raise web.HTTPBadRequest(reason='not ok: mtime param missing')
+
+    subdir = None
+
+    try:
+        subdir = dirs_cache.get_subdir(path_param)
+    except StopIteration:
+        raise web.HTTPBadRequest(reason='not ok: path does not exist')
+
+    utime(
+        subdir.joinpath(PurePath(filename).name),
+        mktime(parsedate(mtime))
+    )
+    return json_response('ok')
+
+
+
 async def write_file(request):
     with TemporaryFile(dir='/dev/shm') as tmp:
 
@@ -493,6 +529,7 @@ def run_app():
     app.router.add_get('/file_contents_b', fetch_contents_b)
     app.router.add_get('/files_list', get_fileslist)
     app.router.add_get('/file_exists', get_file_exists)
+    app.router.add_post('/file/utime', update_time)
     app.router.add_post('/json', update_json)
     app.router.add_post('/json_gz', update_json_gz)
     app.router.add_post('/file', write_file)
