@@ -298,7 +298,7 @@ def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_
         try:
             html_name = get_html_name(cache.base_dir.joinpath('.html'), page)
             if not cache.cache_io.exists(html_name):
-                dump_html(html_name, page, content)
+                dump_html(html_name, content)
         except:
             logger.exception('Error while dumping html')
 
