@@ -43,8 +43,8 @@ class DirsCache():
             if fetched_cache_item is None:
                 dirname = dirpath.parts[pnum - 1]
                 # print('dirname:', dirname)
-                fetched_cache_item = next((d for d in cache_item.iterdir(
-                ) if d.name == dirname and d.is_dir()))
+                fetched_cache_item = next((d for d in os.scandir(
+                    cache_item, follow_symlinks=False) if d.name == dirname and d.is_dir()))
                 self.__dirs_cache[pslice] = fetched_cache_item
                 cache_item = fetched_cache_item.resolve()
             else:
@@ -372,7 +372,6 @@ async def update_time(request):
         mktime(parsedate(mtime))
     )
     return json_response('ok')
-
 
 
 async def write_file(request):
