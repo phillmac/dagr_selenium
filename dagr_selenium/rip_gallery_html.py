@@ -4,7 +4,8 @@ from .functions import config, manager, rip
 
 from os import environ
 
-deviant = input('Enter username: ')
+deviant = (environ['USERNAME'] if environ.get('USERNAME', None)
+              else input('Enter username: '))
 full_crawl = (environ['FULL_CRAWL'] if environ.get('FULL_CRAWL', None)
               else input('Full crawl?: ')).lower().startswith('y')
 
