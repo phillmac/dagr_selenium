@@ -44,7 +44,7 @@ class DirsCache():
                 dirname = dirpath.parts[pnum - 1]
                 # print('dirname:', dirname)
                 fetched_cache_item = Path(next((d for d in os.scandir(
-                    cache_item) if d.name == dirname and d.is_dir() and not d.is_symlink())))
+                    cache_item) if d.name == dirname and d.is_dir(follow_symlinks=False))))
                 self.__dirs_cache[pslice] = fetched_cache_item
                 cache_item = fetched_cache_item
             else:
