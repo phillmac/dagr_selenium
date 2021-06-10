@@ -123,7 +123,7 @@ class BackgroundTask:
         loop.close()
 
 
-async def get_fileslist(request):
+async def fileslist(request):
     params = await request.json()
     path_param = params.get('path', None)
     if path_param is None:
@@ -558,8 +558,8 @@ def run_app():
     app.router.add_get('/json', fetch_json)
     app.router.add_get('/file_contents', fetch_contents)
     app.router.add_get('/file_contents_b', fetch_contents_b)
-    app.router.add_get('/files_list', get_fileslist)
     app.router.add_get('/file/exists', file_exists)
+    app.router.add_get('/dir', fileslist)
     app.router.add_get('/dir/exists', dir_exists)
     app.router.add_post('/dir', mk_dir)
     app.router.add_post('/file/utime', update_time)
