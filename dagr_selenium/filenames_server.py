@@ -46,9 +46,9 @@ class DirsCache():
                 fetched_cache_item = next((d for d in os.scandir(
                     cache_item) if d.name == dirname and d.is_dir()))
                 self.__dirs_cache[pslice] = fetched_cache_item
-                cache_item = fetched_cache_item.resolve()
+                cache_item = fetched_cache_item
             else:
-                cache_item = fetched_cache_item.resolve()
+                cache_item = fetched_cache_item
             # print('cache_item:', cache_item)
         return cache_item
 
