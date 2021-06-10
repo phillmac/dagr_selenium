@@ -141,12 +141,12 @@ async def file_exists(request):
     params = await request.json()
     print(params)
     path_param = params.get('path', None)
-    filename = params.get('filename', None)
+    itemname = params.get('itemname', None)
     if path_param is None:
         raise web.HTTPBadRequest(reason='"not ok: path param missing"')
 
-    if filename is None:
-        raise web.HTTPBadRequest(reason='"not ok: filename param missing"')
+    if itemname is None:
+        raise web.HTTPBadRequest(reason='"not ok: itemname param missing"')
 
     subdir = None
     result = False
@@ -157,7 +157,7 @@ async def file_exists(request):
         print('Subdir does not exist')
         return json_response({'exists': False})
     t_now = time_ns()
-    fnamepath = PurePath(filename)
+    fnamepath = PurePath(itemname)
     result = await exists(subdir.joinpath(fnamepath.name))
     t_spent = (time_ns() - t_now) / 1e6
     print('exists', result, 'time:', '{:.2f}'.format(t_spent)+'ms')
@@ -171,13 +171,17 @@ async def file_exists(request):
 async def dir_exists(request):
     params = await request.json()
     print(params)
+
     path_param = params.get('path', None)
+    itemname = params.get('itemname', None)
 
     if path_param is None:
         raise web.HTTPBadRequest(reason='"not ok: path param missing"')
 
+    if itemname is None:
+        raise web.HTTPBadRequest(reason='"not ok: itemname param missing"')
     try:
-        dirs_cache.get_subdir(path_param)
+        dirs_cache.get_subdir(Path(path_param, PurePath(itemname).name))
     except StopIteration:
         print('Subdir does not exist')
         return json_response({'exists': False})
@@ -361,15 +365,26 @@ async def update_json_gz(request):
 
 async def mk_dir(request):
     params = await request.json()
+    print(params)
 
     path_param = params.get('path', None)
-
-    print(params)
+    dir_name = params.get('dir_name', None)
 
     if path_param is None:
         raise web.HTTPBadRequest(reason='"not ok: path param missing"')
+
+    if dir_name is None:
+        raise web.HTTPBadRequest(reason='"not ok: dir_name param missing"')
+
+    subdir = None
+
     try:
-        await mkdir(path_param, parents=True)
+        subdir = dirs_cache.get_subdir(path_param)
+    except StopIteration:
+        raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
+
+    try: 
+        await mkdir(subdir.joinpath(PurePath(dir_name).name))
     except FileExistsError:
         raise web.HTTPBadRequest(reason='"not ok: dir already exists"')
     return json_response('ok')
