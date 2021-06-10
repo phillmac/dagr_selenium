@@ -127,14 +127,14 @@ async def get_fileslist(request):
     params = await request.json()
     path_param = params.get('path', None)
     if path_param is None:
-        raise web.HTTPBadRequest(reason='not ok: path param missing')
+        raise web.HTTPBadRequest(reason='"not ok: path param missing"')
 
     try:
         subdir = dirs_cache.get_subdir(path_param)
         print('param:', path_param, 'subdir:', subdir)
         return json_response([f.name for f in os.scandir(subdir) if f.is_file()])
     except StopIteration:
-        raise web.HTTPBadRequest(reason='not ok: path does not exist')
+        raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
 
 
 async def get_file_exists(request):
@@ -143,10 +143,10 @@ async def get_file_exists(request):
     path_param = params.get('path', None)
     filename = params.get('filename', None)
     if path_param is None:
-        raise web.HTTPBadRequest(reason='not ok: path param missing')
+        raise web.HTTPBadRequest(reason='"not ok: path param missing"')
 
     if filename is None:
-        raise web.HTTPBadRequest(reason='not ok: filename param missing')
+        raise web.HTTPBadRequest(reason='"not ok: filename param missing"')
 
     subdir = None
     result = False
@@ -214,21 +214,21 @@ async def fetch_contents(request):
     print(params)
 
     if path_param is None:
-        raise web.HTTPBadRequest(reason='not ok: path param missing')
+        raise web.HTTPBadRequest(reason='"not ok: path param missing"')
 
     if filename is None:
-        raise web.HTTPBadRequest(reason='not ok: filename param missing')
+        raise web.HTTPBadRequest(reason='"not ok: filename param missing"')
 
     subdir = None
 
     try:
         subdir = dirs_cache.get_subdir(path_param)
     except StopIteration:
-        raise web.HTTPBadRequest(reason='not ok: path does not exist')
+        raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
 
     dest = subdir.joinpath(PurePath(filename).name)
     if not await exists(dest):
-        raise web.HTTPNotFound(reason='not ok: filename does not exist')
+        raise web.HTTPNotFound(reason='"not ok: filename does not exist"')
     async with aiofiles.open(dest, 'r') as fh:
         resp = web.Response(text=await fh.read())
         resp.enable_compression()
@@ -244,21 +244,21 @@ async def fetch_contents_b(request):
     print(params)
 
     if path_param is None:
-        raise web.HTTPBadRequest(reason='not ok: path param missing')
+        raise web.HTTPBadRequest(reason='"not ok: path param missing"')
 
     if filename is None:
-        raise web.HTTPBadRequest(reason='not ok: filename param missing')
+        raise web.HTTPBadRequest(reason='"not ok: filename param missing"')
 
     subdir = None
 
     try:
         subdir = dirs_cache.get_subdir(path_param)
     except StopIteration:
-        raise web.HTTPBadRequest(reason='not ok: path does not exist')
+        raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
 
     dest = subdir.joinpath(PurePath(filename).name)
     if not await exists(dest):
-        raise web.HTTPNotFound(reason='not ok: filename does not exist')
+        raise web.HTTPNotFound(reason='"not ok: filename does not exist"')
     async with aiofiles.open(dest, 'rb') as fh:
         ct, _enc = mimetypes.guess_type(dest)
 
@@ -280,20 +280,20 @@ async def update_json(request):
     print({'path': path_param, 'filename': filename, 'content': len(content)})
 
     if path_param is None:
-        raise web.HTTPBadRequest(reason='not ok: path param missing')
+        raise web.HTTPBadRequest(reason='"not ok: path param missing"')
 
     if filename is None:
-        raise web.HTTPBadRequest(reason='not ok: filename param missing')
+        raise web.HTTPBadRequest(reason='"not ok: filename param missing"')
 
     if content is None:
-        raise web.HTTPBadRequest(reason='not ok: content param missing')
+        raise web.HTTPBadRequest(reason='"not ok: content param missing"')
 
     subdir = None
 
     try:
         subdir = dirs_cache.get_subdir(path_param)
     except StopIteration:
-        raise web.HTTPBadRequest(reason='not ok: path does not exist')
+        raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
 
     dest = subdir.joinpath(PurePath(filename).name)
     await save_json(dest, content)
@@ -322,20 +322,20 @@ async def update_json_gz(request):
     print({'path': path_param, 'filename': filename, 'content': len(content)})
 
     if path_param is None:
-        raise web.HTTPBadRequest(reason='not ok: path param missing')
+        raise web.HTTPBadRequest(reason='"not ok: path param missing"')
 
     if filename is None:
-        raise web.HTTPBadRequest(reason='not ok: filename param missing')
+        raise web.HTTPBadRequest(reason='"not ok: filename param missing"')
 
     if content is None:
-        raise web.HTTPBadRequest(reason='not ok: content param missing')
+        raise web.HTTPBadRequest(reason='"not ok: content param missing"')
 
     subdir = None
 
     try:
         subdir = dirs_cache.get_subdir(path_param)
     except StopIteration:
-        raise web.HTTPBadRequest(reason='not ok: path does not exist')
+        raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
 
     dest = subdir.joinpath(PurePath(filename).name)
     await save_json(dest, content)
@@ -350,11 +350,11 @@ async def mk_dir(request):
     print(params)
 
     if path_param is None:
-        raise web.HTTPBadRequest(reason='not ok: path param missing')
+        raise web.HTTPBadRequest(reason='"not ok: path param missing"')
     try:
         await mkdir(path_param, parents=True)
     except FileExistsError:
-        raise web.HTTPBadRequest(reason='not ok: dir already exists')
+        raise web.HTTPBadRequest(reason='"not ok: dir already exists"')
     return json_response('ok')
 
 async def update_time(request):
@@ -367,20 +367,20 @@ async def update_time(request):
     print(params)
 
     if path_param is None:
-        raise web.HTTPBadRequest(reason='not ok: path param missing')
+        raise web.HTTPBadRequest(reason='"not ok: path param missing"')
 
     if filename is None:
-        raise web.HTTPBadRequest(reason='not ok: filename param missing')
+        raise web.HTTPBadRequest(reason='"not ok: filename param missing"')
 
     if mtime is None:
-        raise web.HTTPBadRequest(reason='not ok: mtime param missing')
+        raise web.HTTPBadRequest(reason='"not ok: mtime param missing"')
 
     subdir = None
 
     try:
         subdir = dirs_cache.get_subdir(path_param)
     except StopIteration:
-        raise web.HTTPBadRequest(reason='not ok: path does not exist')
+        raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
 
     utime(
         subdir.joinpath(PurePath(filename).name),
@@ -421,17 +421,17 @@ async def write_file(request):
               'size': params['size']})
 
         if path_param is None:
-            raise web.HTTPBadRequest(reason='not ok: path param missing')
+            raise web.HTTPBadRequest(reason='"not ok: path param missing"')
 
         if filename is None:
-            raise web.HTTPBadRequest(reason='not ok: filename param missing')
+            raise web.HTTPBadRequest(reason='"not ok: filename param missing"')
 
         subdir = None
 
         try:
             subdir = dirs_cache.get_subdir(path_param)
         except StopIteration:
-            raise web.HTTPBadRequest(reason='not ok: path does not exist')
+            raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
 
         with subdir.joinpath(PurePath(filename).name).open('wb') as dest:
             copyfileobj(tmp, dest)
@@ -448,21 +448,21 @@ async def fetch_json(request):
     print(params)
 
     if path_param is None:
-        raise web.HTTPBadRequest(reason='not ok: path param missing')
+        raise web.HTTPBadRequest(reason='"not ok: path param missing"')
 
     if filename is None:
-        raise web.HTTPBadRequest(reason='not ok: filename param missing')
+        raise web.HTTPBadRequest(reason='"not ok: filename param missing"')
 
     subdir = None
 
     try:
         subdir = dirs_cache.get_subdir(path_param)
     except StopIteration:
-        raise web.HTTPBadRequest(reason='not ok: path does not exist')
+        raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
 
     dest = subdir.joinpath(PurePath(filename).name)
     if not await exists(dest):
-        raise web.HTTPNotFound(reason='not ok: filename not found')
+        raise web.HTTPNotFound(reason='"not ok: filename not found"')
     resp = json_response(await load_json(dest))
     resp.enable_compression()
     return resp
@@ -508,20 +508,20 @@ async def replace(request):
     print(params)
 
     if path_param is None:
-        raise web.HTTPBadRequest(reason='not ok: path param missing')
+        raise web.HTTPBadRequest(reason='"not ok: path param missing"')
 
     if filename is None:
-        raise web.HTTPBadRequest(reason='not ok: filename param missing')
+        raise web.HTTPBadRequest(reason='"not ok: filename param missing"')
 
     if new_filename is None:
-        raise web.HTTPBadRequest(reason='not ok: new_filename param missing')
+        raise web.HTTPBadRequest(reason='"not ok: new_filename param missing"')
 
     subdir = None
 
     try:
         subdir = dirs_cache.get_subdir(path_param)
     except StopIteration:
-        raise web.HTTPBadRequest(reason='not ok: path does not exist')
+        raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
 
     oldfn = subdir.joinpath(PurePath(filename).name)
     newfn = subdir.joinpath(PurePath(new_filename).name)
@@ -533,7 +533,7 @@ async def replace(request):
         await rename(newfn, oldfn)
 
         return json_response('ok')
-    raise web.HTTPBadRequest(reason='not ok: filename does not exist')
+    raise web.HTTPBadRequest(reason='"not ok: filename does not exist"')
 
 
 def run_app():
