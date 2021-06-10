@@ -137,7 +137,7 @@ async def get_fileslist(request):
         raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
 
 
-async def get_file_exists(request):
+async def file_exists(request):
     params = await request.json()
     print(params)
     path_param = params.get('path', None)
@@ -165,6 +165,23 @@ async def get_file_exists(request):
         if not params.get('update_cache', None) is False:
             await BackgroundTask().run(check_update_fn_cache, (params, subdir, path_param))
     return json_response({'exists': result})
+
+
+
+async def dir_exists(request):
+    params = await request.json()
+    print(params)
+    path_param = params.get('path', None)
+
+    if path_param is None:
+        raise web.HTTPBadRequest(reason='"not ok: path param missing"')
+
+    try:
+        dirs_cache.get_subdir(path_param)
+    except StopIteration:
+        print('Subdir does not exist')
+        return json_response({'exists': False})
+    return json_response({'exists': True})
 
 
 async def check_update_fn_cache(params, subdir, path_param, session=None):
@@ -542,7 +559,8 @@ def run_app():
     app.router.add_get('/file_contents', fetch_contents)
     app.router.add_get('/file_contents_b', fetch_contents_b)
     app.router.add_get('/files_list', get_fileslist)
-    app.router.add_get('/file_exists', get_file_exists)
+    app.router.add_get('/file/exists', file_exists)
+    app.router.add_get('/dir/exists', dir_exists)
     app.router.add_post('/dir', mk_dir)
     app.router.add_post('/file/utime', update_time)
     app.router.add_post('/json', update_json)
