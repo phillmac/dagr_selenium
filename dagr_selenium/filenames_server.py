@@ -17,7 +17,7 @@ from tempfile import TemporaryFile
 from time import time_ns
 
 import aiofiles
-import aiofiles.os as aiofiles_os
+from aiofiles.os import exists, rename, remove, mkdir
 from aiohttp import ClientSession, web
 from aiohttp.web_response import json_response
 from dotenv import load_dotenv
@@ -149,7 +149,7 @@ async def get_file_exists(request):
         raise web.HTTPBadRequest(reason='not ok: filename param missing')
 
     subdir = None
-    exists = False
+    result = False
 
     try:
         subdir = dirs_cache.get_subdir(path_param)
@@ -158,13 +158,13 @@ async def get_file_exists(request):
         return json_response({'exists': False})
     t_now = time_ns()
     fnamepath = PurePath(filename)
-    exists = subdir.joinpath(fnamepath.name).exists()
+    result = await exists(subdir.joinpath(fnamepath.name))
     t_spent = (time_ns() - t_now) / 1e6
-    print('exists', exists, 'time:', '{:.2f}'.format(t_spent)+'ms')
-    if exists:
+    print('exists', result, 'time:', '{:.2f}'.format(t_spent)+'ms')
+    if result:
         if not params.get('update_cache', None) is False:
             await BackgroundTask().run(check_update_fn_cache, (params, subdir, path_param))
-    return json_response({'exists': exists})
+    return json_response({'exists': result})
 
 
 async def check_update_fn_cache(params, subdir, path_param, session=None):
@@ -227,7 +227,7 @@ async def fetch_contents(request):
         raise web.HTTPBadRequest(reason='not ok: path does not exist')
 
     dest = subdir.joinpath(PurePath(filename).name)
-    if not dest.exists():
+    if not await exists(dest):
         raise web.HTTPNotFound(reason='not ok: filename does not exist')
     async with aiofiles.open(dest, 'r') as fh:
         resp = web.Response(text=await fh.read())
@@ -257,7 +257,7 @@ async def fetch_contents_b(request):
         raise web.HTTPBadRequest(reason='not ok: path does not exist')
 
     dest = subdir.joinpath(PurePath(filename).name)
-    if not dest.exists():
+    if not await exists(dest):
         raise web.HTTPNotFound(reason='not ok: filename does not exist')
     async with aiofiles.open(dest, 'rb') as fh:
         ct, _enc = mimetypes.guess_type(dest)
@@ -341,6 +341,21 @@ async def update_json_gz(request):
     await save_json(dest, content)
     return json_response('ok')
 
+
+async def mk_dir(request):
+    params = await request.json()
+
+    path_param = params.get('path', None)
+
+    print(params)
+
+    if path_param is None:
+        raise web.HTTPBadRequest(reason='not ok: path param missing')
+    try:
+        await mkdir(path_param, parents=True)
+    except FileExistsError:
+        raise web.HTTPBadRequest(reason='not ok: dir already exists')
+    return json_response('ok')
 
 async def update_time(request):
     params = await request.json()
@@ -446,7 +461,7 @@ async def fetch_json(request):
         raise web.HTTPBadRequest(reason='not ok: path does not exist')
 
     dest = subdir.joinpath(PurePath(filename).name)
-    if not dest.exists():
+    if not await exists(dest):
         raise web.HTTPNotFound(reason='not ok: filename not found')
     resp = json_response(await load_json(dest))
     resp.enable_compression()
@@ -460,15 +475,15 @@ async def buffered_file_write(fpath, content):
     temp = fpath.with_suffix('.tmp')
     async with aiofiles.open(temp, 'w') as fh:
         await fh.write(buffer.read())
-    await aiofiles_os.rename(temp, fpath)
+    await rename(temp, fpath)
 
 
 async def backup_cache_file(fpath):
     backup = fpath.with_suffix('.bak')
-    if fpath.exists():
-        if backup.exists():
-            await aiofiles_os.remove(backup)
-        await aiofiles_os.rename(fpath, backup)
+    if await exists(fpath):
+        if await exists(backup):
+            await remove(backup)
+        await rename(fpath, backup)
 
 
 async def save_json(fpath, data, do_backup=True):
@@ -511,11 +526,11 @@ async def replace(request):
     oldfn = subdir.joinpath(PurePath(filename).name)
     newfn = subdir.joinpath(PurePath(new_filename).name)
 
-    if newfn.exists():
-        if oldfn.exists():
-            await aiofiles_os.remove(oldfn)
+    if await exists(newfn):
+        if await exists(oldfn):
+            await remove(oldfn)
 
-        await aiofiles_os.rename(newfn, oldfn)
+        await rename(newfn, oldfn)
 
         return json_response('ok')
     raise web.HTTPBadRequest(reason='not ok: filename does not exist')
@@ -528,6 +543,7 @@ def run_app():
     app.router.add_get('/file_contents_b', fetch_contents_b)
     app.router.add_get('/files_list', get_fileslist)
     app.router.add_get('/file_exists', get_file_exists)
+    app.router.add_post('/dir', mk_dir)
     app.router.add_post('/file/utime', update_time)
     app.router.add_post('/json', update_json)
     app.router.add_post('/json_gz', update_json_gz)
