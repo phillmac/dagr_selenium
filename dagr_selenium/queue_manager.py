@@ -60,12 +60,9 @@ class waitingCount():
 waiting_count = waitingCount()
 
 
-async def add_to_queue(mode, deviant=None, mval=None, priority=100, full_crawl=False, resolved=False, disable_filter=False, verify_exists=None, verify_best=None, no_crawl=None, crawl_offset=None, load_more=None):
-    item = QueueItem(mode=mode, deviant=deviant, mval=mval,
-                     priority=priority, full_crawl=full_crawl, resolved=resolved,
-                     disable_filter=disable_filter, verify_exists=verify_exists,
-                     verify_best=verify_best, no_crawl=no_crawl,
-                     crawl_offset=crawl_offset, load_more=load_more)
+async def add_to_queue(mode, deviant=None, mval=None, priority=100, full_crawl=False, resolved=False, disable_filter=False, verify_exists=None, verify_best=None, no_crawl=None, crawl_offset=None, load_more=None, dump_html=None):
+    item = QueueItem(mode=mode, deviant=deviant, mval=mval, priority=priority,          full_crawl=full_crawl, resolved=resolved, disable_filter=disable_filter,
+                     verify_exists=verify_exists, verify_best=verify_best, no_crawl=no_crawl, crawl_offset=crawl_offset, load_more=load_more, dump_html=dump_html)
     params = item.params
     logger.info(f"Adding {params} to queue")
     bg_task = BackgroundTask()
@@ -87,7 +84,7 @@ def detect_mode(url):
 
 def detect_mval(mode, url):
     parts = PurePosixPath(url).parts
-    slice_count = {'tag':0, 'gallery': False, 'favs': False, 'gallery_featured': False,
+    slice_count = {'tag': 0, 'gallery': False, 'favs': False, 'gallery_featured': False,
                    'favs_featured': False, 'art': 1, 'album': 2, 'collection': 2}.get(mode)
     if slice_count is False:
         return None

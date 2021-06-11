@@ -278,7 +278,7 @@ def rip_pages(cache, pages, full_crawl=False, disable_filter=False, callback=Non
         cache, pages, disable_filter=disable_filter, callback=callback, **kwargs)
     cache.save_extras(full_crawl)
 
-def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_offset=None, no_crawl=None, **kwargs):
+def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_offset=None, no_crawl=None, dump_html=None, **kwargs):
     callback = None
 
     if crawl_offset:
@@ -307,7 +307,7 @@ def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_
                             full_crawl=full_crawl, crawl_offset=crawl_offset, no_crawl=no_crawl)
         with DAGRCache.with_queue_only(config, mode, deviant, mval, dagr_io=DAGRHTTPIo) as cache:
 
-            if '_html' in mode:
+            if dump_html:
                 mode = mode.replace('_html', '')
                 callback = dump_callback
                 if not cache.cache_io.dir_exists('.html'):
