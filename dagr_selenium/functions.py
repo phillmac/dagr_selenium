@@ -308,7 +308,6 @@ def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_
         with DAGRCache.with_queue_only(config, mode, deviant, mval, dagr_io=DAGRHTTPIo) as cache:
 
             if dump_html:
-                mode = mode.replace('_html', '')
                 callback = dump_callback
                 if not cache.cache_io.dir_exists('.html'):
                     cache.cache_io.mkdir('.html')
