@@ -310,6 +310,7 @@ def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_
             if dump_html:
                 callback = dump_callback
                 if not cache.cache_io.dir_exists('.html'):
+                    logger.info('Creating .html dir')
                     cache.cache_io.mkdir('.html')
 
             if pages:
