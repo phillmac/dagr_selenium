@@ -298,17 +298,21 @@ def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_
         try:
             html_name = get_html_name(page).name
             if not cache.cache_io.exists(subdir='.html', fname=html_name):
-                dump_html(html_name, content)
+                cache.cache_io.write_bytes(content, subdir='.html', fname=html_name)
         except:
             logger.exception('Error while dumping html')
 
-    if '_html' in mode:
-        mode = mode.replace('_html', '')
-        callback = dump_callback
     try:
         pages = crawl_pages(mode, deviant, mval=mval,
                             full_crawl=full_crawl, crawl_offset=crawl_offset, no_crawl=no_crawl)
         with DAGRCache.with_queue_only(config, mode, deviant, mval, dagr_io=DAGRHTTPIo) as cache:
+
+            if '_html' in mode:
+                mode = mode.replace('_html', '')
+                callback = dump_callback
+                if not cache.cache_io.dir_exists('.html'):
+                    cache.cache_io.mkdir('.html')
+
             if pages:
                 enqueued = cache.update_queue(pages)
                 logger.info(f"Add {enqueued} pages to {deviant}")
