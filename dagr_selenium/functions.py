@@ -109,9 +109,12 @@ def find_load_comments(context):
 
 def find_load_more(context):
     for btn in context.find_elements_by_tag_name('button'):
-        if 'load more' in btn.get_attribute('innerText').lower():
-            logger.info('Found load more')
-            return btn
+        try:
+            if 'load more' in btn.get_attribute('innerText').lower():
+                logger.info('Found load more')
+                return btn
+        except StaleElementReferenceException:
+            pass
 
 def is_remove_bttn(bttn):
     innerHTML = bttn.get_attribute('innerHTML')
