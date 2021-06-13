@@ -281,29 +281,29 @@ def rip_pages(cache, pages, full_crawl=False, disable_filter=False, callback=Non
         cache, pages, disable_filter=disable_filter, callback=callback, **kwargs)
     cache.save_extras(full_crawl)
 
+def load_comments():
+    browser = manager.get_browser()
+    load_comments = find_load_comments(browser)
+    if load_comments:
+        browser.click_element(load_comments)
+    while load_more := find_load_more(browser):
+        browser.click_element(load_more)
+
+def dump_callback(page, content, cache_io, load_more=None):
+    if load_more:
+        load_comments()
+    try:
+        html_name = get_html_name(page).name
+        if not cache_io.exists(subdir='.html', fname=html_name, update_cache=False):
+            cache_io.write_bytes(content, subdir='.html', fname=html_name)
+    except:
+        logger.exception('Error while dumping html')
+
 def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_offset=None, no_crawl=None, dump_html=None, **kwargs):
     callback = None
 
     if crawl_offset:
         logger.log(level=15, msg=f"crawl_offset: {crawl_offset}")
-
-    def load_comments():
-        browser = manager.get_browser()
-        load_comments = find_load_comments(browser)
-        if load_comments:
-            browser.click_element(load_comments)
-        while load_more := find_load_more(browser):
-            browser.click_element(load_more)
-
-    def dump_callback(page, content):
-        if kwargs.get('load_more', None):
-            load_comments()
-        try:
-            html_name = get_html_name(page).name
-            if not cache.cache_io.exists(subdir='.html', fname=html_name, update_cache=False):
-                cache.cache_io.write_bytes(content, subdir='.html', fname=html_name)
-        except:
-            logger.exception('Error while dumping html')
 
     try:
         pages = crawl_pages(mode, deviant, mval=mval,
@@ -311,7 +311,7 @@ def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_
         with DAGRCache.with_queue_only(config, mode, deviant, mval, dagr_io=DAGRHTTPIo) as cache:
 
             if dump_html:
-                callback = dump_callback
+                callback = lambda page, content: dump_callback(page, content, cache.cache_io, load_more=kwargs.get('load_more'))
                 if not cache.cache_io.dir_exists('.html'):
                     logger.info('Creating .html dir')
                     cache.cache_io.mkdir('.html')
