@@ -181,11 +181,11 @@ async def dir_exists(request):
     if itemname is None:
         raise web.HTTPBadRequest(reason='"not ok: itemname param missing"')
     try:
-        dirs_cache.get_subdir(Path(path_param, PurePath(itemname).name))
+        result = dirs_cache.get_subdir(Path(path_param, PurePath(itemname).name))
     except StopIteration:
         print('Subdir does not exist')
         return json_response({'exists': False})
-    return json_response({'exists': True})
+    return json_response({'exists': await exists(result)})
 
 
 async def check_update_fn_cache(params, subdir, path_param, session=None):
