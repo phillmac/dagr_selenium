@@ -101,11 +101,13 @@ def find_tickbox_parent(context):
             if inp_type == 'checkbox':
                 return label
 
+
 def find_load_comments(context):
     for btn in context.find_elements_by_tag_name('button'):
         if 'load previous comments' in btn.get_attribute('innerText').lower():
             logger.info('Found load comments')
             return btn
+
 
 def find_load_more(context):
     for btn in context.find_elements_by_tag_name('button'):
@@ -115,6 +117,7 @@ def find_load_more(context):
                 return btn
         except StaleElementReferenceException:
             pass
+
 
 def is_remove_bttn(bttn):
     innerHTML = bttn.get_attribute('innerHTML')
@@ -156,7 +159,7 @@ def sort_watchlist():
     sort_pages(cache.query(cache_slug))
 
 
-def sort_pages(to_sort, resort=False, queued_only=True, flush=True):
+def sort_pages(to_sort, resort=False, queued_only=True, flush=True, disable_resolve=None):
     sorted_pages = set()
     crawler_cache = manager.get_cache()
     cache_slug = 'sorted'
@@ -182,10 +185,11 @@ def sort_pages(to_sort, resort=False, queued_only=True, flush=True):
     queued_artists = []
     for deviant, pages in artists.items():
         try:
-            # try:
-            #     deviant, _group = manager.get_dagr().resolve_deviant(deviant)
-            # except DagrException:
-            #     logger.warning(f"Unable to resolve deviant {deviant}")
+            if not disable_resolve:
+                try:
+                    deviant = resolve_deviant(deviant)
+                except DagrException:
+                    logger.warning(f"Unable to resolve deviant {deviant}")
             addst = time()
             with DAGRCache.with_queue_only(config, 'gallery', deviant) as cache:
                 base_dir_exists = cache.base_dir.exists()
@@ -281,6 +285,7 @@ def rip_pages(cache, pages, full_crawl=False, disable_filter=False, callback=Non
         cache, pages, disable_filter=disable_filter, callback=callback, **kwargs)
     cache.save_extras(full_crawl)
 
+
 def load_comments():
     browser = manager.get_browser()
     load_comments = find_load_comments(browser)
@@ -288,6 +293,7 @@ def load_comments():
         browser.click_element(load_comments)
     while load_more := find_load_more(browser):
         browser.click_element(load_more)
+
 
 def dump_callback(page, content, cache_io, load_more=None):
     if load_more:
@@ -299,11 +305,18 @@ def dump_callback(page, content, cache_io, load_more=None):
     except:
         logger.exception('Error while dumping html')
 
-def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_offset=None, no_crawl=None, dump_html=None, **kwargs):
+
+def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_offset=None, no_crawl=None, dump_html=None, disable_resolve=None, **kwargs):
     callback = None
 
     if crawl_offset:
         logger.log(level=15, msg=f"crawl_offset: {crawl_offset}")
+
+    if not disable_resolve:
+        try:
+            deviant = resolve_deviant(deviant)
+        except DagrException:
+            logger.warning(f"Unable to resolve deviant {deviant}")
 
     try:
         pages = crawl_pages(mode, deviant, mval=mval,
@@ -311,7 +324,8 @@ def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_
         with DAGRCache.with_queue_only(config, mode, deviant, mval, dagr_io=DAGRHTTPIo) as cache:
 
             if dump_html:
-                callback = lambda page, content: dump_callback(page, content, cache.cache_io, load_more=kwargs.get('load_more'))
+                def callback(page, content): return dump_callback(
+                    page, content, cache.cache_io, load_more=kwargs.get('load_more'))
                 if not cache.cache_io.dir_exists('.html'):
                     logger.info('Creating .html dir')
                     cache.cache_io.mkdir('.html')
@@ -364,8 +378,8 @@ def rip_queue(mode, deviant, mval=None):
         pass
 
 
-def rip_gallery(deviant, full_crawl=False):
-    rip('gallery', deviant, full_crawl=full_crawl)
+def rip_gallery(deviant, full_crawl=False, disable_resolve=None):
+    rip('gallery', deviant, full_crawl=full_crawl, disable_resolve=disable_resolve)
 
 
 def rip_favs(deviant, full_crawl=False):
