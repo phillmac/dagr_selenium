@@ -4,8 +4,6 @@ from setuptools import setup, find_packages
 
 version = None
 exec(open('dagr_selenium/version.py').read())
-with open('README.md', 'r') as fh:
-    long_description = fh.read()
 setup(
     name='dagr_selenium',
     version=version,
