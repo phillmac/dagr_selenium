@@ -22,7 +22,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
 
 WORKDIR /dagr_selenium
 
-COPY ./* ./
+COPY . .
 
 RUN pip install .[full] && mkdir -v /output /DA /home/dagr \
  && chown -Rv dagr:dagr /output /home/dagr /DA \
