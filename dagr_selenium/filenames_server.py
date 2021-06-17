@@ -1,5 +1,3 @@
-from email.utils import parsedate
-from time import mktime
 import asyncio
 import base64
 import gzip
@@ -7,6 +5,7 @@ import json
 import logging
 import mimetypes
 import os
+from email.utils import parsedate
 from io import BytesIO, StringIO
 from logging.handlers import RotatingFileHandler
 from operator import itemgetter
@@ -14,10 +13,10 @@ from os import utime
 from pathlib import Path, PurePath
 from shutil import copyfileobj
 from tempfile import TemporaryFile
-from time import time_ns
+from time import mktime, time_ns
 
 import aiofiles
-from aiofiles.os import exists, rename, remove, mkdir
+from aiofiles.os import exists, mkdir, remove, rename, replace, rmdir
 from aiohttp import ClientSession, web
 from aiohttp.web_response import json_response
 from dotenv import load_dotenv
@@ -33,8 +32,8 @@ class DirsCache():
         self.__dirs_cache[tuple()] = Path.cwd()
 
     def get_subdir(self, dirpath):
-        if not isinstance(dirpath, Path):
-            dirpath = Path(dirpath)
+        if isinstance(dirpath, str):
+            dirpath = PurePath(dirpath)
         cache_item = None
         for pnum in range(0, len(dirpath.parts)+1):
             pslice = dirpath.parts[0: pnum]
@@ -167,7 +166,6 @@ async def file_exists(request):
     return json_response({'exists': result})
 
 
-
 async def dir_exists(request):
     params = await request.json()
     print(params)
@@ -186,8 +184,9 @@ async def dir_exists(request):
     except StopIteration:
         print('Subdir does not exist')
         return json_response({'exists': False})
-    
-    dir_item = subdir if itemname is None else subdir.joinpath(PurePath(itemname).name)
+
+    dir_item = subdir if itemname is None else subdir.joinpath(
+        PurePath(itemname).name)
     return json_response({'exists': await exists(dir_item)})
 
 
@@ -386,13 +385,15 @@ async def mk_dir(request):
     except StopIteration:
         raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
 
-    dir_item = subdir if dir_name is None else subdir.joinpath(PurePath(dir_name).name)
+    dir_item = subdir if dir_name is None else subdir.joinpath(
+        PurePath(dir_name).name)
 
-    try: 
+    try:
         await mkdir(dir_item)
     except FileExistsError:
         raise web.HTTPBadRequest(reason='"not ok: dir already exists"')
     return json_response('ok')
+
 
 async def update_time(request):
     params = await request.json()
@@ -535,7 +536,36 @@ async def load_json(fpath):
         return json.load(buffer)
 
 
-async def replace(request):
+async def rm_dir(request):
+    params = await request.json()
+
+    path_param = params.get('path', None)
+    dir_name = params.get('dir_name', None)
+
+    print(params)
+
+    if path_param is None:
+        raise web.HTTPBadRequest(reason='"not ok: path param missing"')
+
+    if dir_name is None:
+        raise web.HTTPBadRequest(reason='"not ok: dir_name param missing"')
+
+    subdir = None
+
+    try:
+        subdir = dirs_cache.get_subdir(
+            PurePath(path_param).joinpath(PurePath(dir_name).name))
+    except StopIteration:
+        raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
+
+    if await exists(subdir):
+        await rmdir(subdir)
+
+        return json_response('ok')
+    raise web.HTTPBadRequest(reason='"not ok: filename does not exist"')
+
+
+async def replace_item(request):
     params = await request.json()
 
     path_param = params.get('path', None)
@@ -564,13 +594,53 @@ async def replace(request):
     newfn = subdir.joinpath(PurePath(new_filename).name)
 
     if await exists(newfn):
-        if await exists(oldfn):
-            await remove(oldfn)
+        # if await exists(oldfn):
+        #     await remove(oldfn)
 
-        await rename(newfn, oldfn)
+        # await rename(newfn, oldfn)
 
+        await replace(newfn, oldfn)
         return json_response('ok')
     raise web.HTTPBadRequest(reason='"not ok: filename does not exist"')
+
+
+async def rename_item(request):
+    params = await request.json()
+
+    path_param = params.get('path', None)
+    itemname = params.get('itemname', None)
+    new_itemname = params.get('new_itemname', None)
+
+    print(params)
+
+    if path_param is None:
+        raise web.HTTPBadRequest(reason='"not ok: path param missing"')
+
+    if itemname is None:
+        raise web.HTTPBadRequest(reason='"not ok: filename param missing"')
+
+    if new_itemname is None:
+        raise web.HTTPBadRequest(reason='"not ok: new_filename param missing"')
+
+    subdir = None
+
+    try:
+        subdir = dirs_cache.get_subdir(path_param)
+    except StopIteration:
+        raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
+
+    oldin = subdir.joinpath(PurePath(itemname).name)
+    newin = subdir.joinpath(PurePath(new_itemname).name)
+
+    if not await exists(oldin):
+        raise web.HTTPBadRequest(reason='"not ok: itemname does not exist"')
+    if await exists(newin):
+        raise web.HTTPBadRequest(
+            reason='"not ok: new_itemname already exists"')
+
+    await rename(oldin, newin)
+
+    return json_response('ok')
 
 
 def run_app():
@@ -582,6 +652,8 @@ def run_app():
     app.router.add_get('/dir', fileslist)
     app.router.add_get('/dir/exists', dir_exists)
     app.router.add_post('/dir', mk_dir)
+    app.router.add_delete('/dir', rm_dir)
+    app.router.add_patch('/dir', rename_item)
     app.router.add_post('/file/utime', update_time)
     app.router.add_post('/json', update_json)
     app.router.add_post('/json_gz', update_json_gz)
