@@ -30,7 +30,6 @@ RUN pip install .[full] && mkdir -v /output /DA /home/dagr \
 
 USER dagr
 
-
 WORKDIR /output
 
 ENTRYPOINT ["python3"]
