@@ -16,7 +16,7 @@ from tempfile import TemporaryFile
 from time import mktime, time_ns
 
 import aiofiles
-from aiofiles.os import exists, mkdir, remove, rename, replace, rmdir
+from aiofiles.os import exists, mkdir, remove, rename, replace, rmdir, abspath
 from aiohttp import ClientSession, web
 from aiohttp.web_response import json_response
 from dotenv import load_dotenv
@@ -603,8 +603,7 @@ async def replace_item(request):
         return json_response('ok')
     raise web.HTTPBadRequest(reason='"not ok: filename does not exist"')
 
-
-async def rename_item(request):
+async def rename_item(item_type, request):
     params = await request.json()
 
     path_param = params.get('path', None)
@@ -629,14 +628,28 @@ async def rename_item(request):
     except StopIteration:
         raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
 
-    oldin = subdir.joinpath(PurePath(itemname).name)
-    newin = subdir.joinpath(PurePath(new_itemname).name)
+    newin = subdir.joinpath(new_itemname)
+
+    if not str(subdir) == os.path.commonpath((subdir, await abspath(newin))):
+        raise web.HTTPBadRequest(reason='"not ok: bad relative new item path"')
+
+    if item_type == 'dir':
+        try:
+            oldin = dirs_cache.get_subdir(subdir.joinpath(itemname))
+        except StopIteration:
+            raise web.HTTPBadRequest(reason='"not ok: item does not exist"')
+
+    else:
+        oldin = subdir.joinpath(PurePath(itemname).name)
+        if not oldin.is_file(follow_symlinks=False):
+            raise web.HTTPBadRequest(reason='"not ok: item is not a file"')
 
     if not await exists(oldin):
-        raise web.HTTPBadRequest(reason='"not ok: itemname does not exist"')
+        raise web.HTTPBadRequest(reason='"not ok: item does not exist"')
+
     if await exists(newin):
         raise web.HTTPBadRequest(
-            reason='"not ok: new_itemname already exists"')
+            reason='"not ok: new item already exists"')
 
     await rename(oldin, newin)
 
@@ -653,7 +666,7 @@ def run_app():
     app.router.add_get('/dir/exists', dir_exists)
     app.router.add_post('/dir', mk_dir)
     app.router.add_delete('/dir', rm_dir)
-    app.router.add_patch('/dir', rename_item)
+    app.router.add_patch('/dir', lambda request: rename_item('dir', request))
     app.router.add_post('/file/utime', update_time)
     app.router.add_post('/json', update_json)
     app.router.add_post('/json_gz', update_json_gz)
