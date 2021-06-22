@@ -33,7 +33,7 @@ class DirsCache():
 
     def get_subdir(self, dirpath):
         if isinstance(dirpath, str):
-            dirpath = PurePath(dirpath)
+            dirpath = PurePosixPath(dirpath)
         cache_item = None
         for pnum in range(0, len(dirpath.parts)+1):
             pslice = dirpath.parts[0: pnum]
@@ -385,11 +385,13 @@ async def mk_dir(request):
     except StopIteration:
         raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
 
-    dir_item = subdir if dir_name is None else subdir.joinpath(
-        PurePath(dir_name).name)
+    dir_item = subdir if dir_name is None else subdir.joinpath(PurePosixPath(dir_name))
+
+    if not str(subdir) == os.path.commonpath((subdir, await abspath(dir_item))):
+        raise web.HTTPBadRequest(reason='"not ok: bad relative new dir path"')
 
     try:
-        await mkdir(dir_item)
+        await mkdir(dir_item, parents=True)
     except FileExistsError:
         raise web.HTTPBadRequest(reason='"not ok: dir already exists"')
     return json_response('ok')

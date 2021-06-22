@@ -192,12 +192,12 @@ def sort_pages(to_sort, resort=False, queued_only=True, flush=True, disable_reso
                     logger.warning(f"Unable to resolve deviant {deviant}")
             addst = time()
             with DAGRCache.with_queue_only(config, 'gallery', deviant) as cache:
-                base_dir_exists = cache.base_dir.exists()
+                base_dir_exists = cache.cache_io.dir_exists()
                 logger.log(
-                    level=15, msg=f"Sorting pages into {cache.base_dir}, dir exists: {base_dir_exists}")
+                    level=15, msg=f"Sorting pages into {cache.rel_dir}, dir exists: {base_dir_exists}")
                 if not base_dir_exists:
-                    cache.base_dir.make_dirs(parents=True)
-                    logger.log(level=15, msg=f"Created dir {cache.base_dir}")
+                    cache.cache_io.mkdir()
+                    logger.log(level=15, msg=f"Created dir {cache.rel_dir}")
                 enqueued = cache.update_queue(pages)
                 if enqueued > 0:
                     queued_artists.append(deviant)
