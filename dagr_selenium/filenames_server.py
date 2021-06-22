@@ -384,14 +384,15 @@ async def mk_dir(request):
         subdir = dirs_cache.get_subdir(path_param)
     except StopIteration:
         if dir_name is None:
-            dir_item = PosixPath(path_param)        
+            dir_item = PosixPath(path_param)
+            if not str(PosixPath.cwd()) == os.path.commonpath((subdir, await abspath(dir_item))):
+                raise web.HTTPBadRequest(reason='"not ok: bad relative new dir path"')     
         else:
             raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
     if subdir:
         dir_item = subdir if dir_name is None else subdir.joinpath(PurePosixPath(dir_name))
-
-    if not str(subdir) == os.path.commonpath((subdir, await abspath(dir_item))):
-        raise web.HTTPBadRequest(reason='"not ok: bad relative new dir path"')
+        if not str(subdir) == os.path.commonpath((subdir, await abspath(dir_item))):
+            raise web.HTTPBadRequest(reason='"not ok: bad relative new dir path"')
 
     try:
         await mkdir(dir_item, parents=True)
