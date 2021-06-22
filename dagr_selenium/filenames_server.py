@@ -616,10 +616,10 @@ async def rename_item(item_type, request):
         raise web.HTTPBadRequest(reason='"not ok: path param missing"')
 
     if itemname is None:
-        raise web.HTTPBadRequest(reason='"not ok: filename param missing"')
+        raise web.HTTPBadRequest(reason='"not ok: itemname param missing"')
 
     if new_itemname is None:
-        raise web.HTTPBadRequest(reason='"not ok: new_filename param missing"')
+        raise web.HTTPBadRequest(reason='"not ok: new_itemname param missing"')
 
     subdir = None
 
