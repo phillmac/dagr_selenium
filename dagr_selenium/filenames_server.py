@@ -186,7 +186,7 @@ async def dir_exists(request):
         return json_response({'exists': False})
 
     dir_item = subdir if itemname is None else subdir.joinpath(
-        PurePosixPath(itemname).name)
+        PurePosixPath(itemname))
     return json_response({'exists': await exists(dir_item)})
 
 
