@@ -12,7 +12,7 @@ from dagr_revamped.DAGRManager import DAGRManager
 from dagr_revamped.lib import DagrException
 from dagr_revamped.TCPKeepAliveSession import TCPKeepAliveSession
 from dagr_revamped.utils import (artist_from_url, dump_html, get_html_name,
-                                 load_json, save_json)
+                                 load_json, save_json, get_remote_io)
 from selenium.common.exceptions import (NoSuchElementException,
                                         StaleElementReferenceException)
 from selenium.common.exceptions import \
@@ -324,7 +324,7 @@ def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_
         with DAGRCache.with_queue_only(config, mode, deviant, mval, dagr_io=DAGRHTTPIo) as cache:
 
             if dump_html:
-                def callback(page, content): return dump_callback(
+                callback = lambda page, content: dump_callback(
                     page, content, cache.cache_io, load_more=kwargs.get('load_more'))
                 if not cache.cache_io.dir_exists('.html'):
                     logger.info('Creating .html dir')
