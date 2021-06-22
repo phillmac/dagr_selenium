@@ -156,7 +156,7 @@ async def file_exists(request):
         print('Subdir does not exist')
         return json_response({'exists': False})
     t_now = time_ns()
-    fnamepath = PurePath(itemname)
+    fnamepath = PurePosixPath(itemname)
     result = await exists(subdir.joinpath(fnamepath.name))
     t_spent = (time_ns() - t_now) / 1e6
     print('exists', result, 'time:', '{:.2f}'.format(t_spent)+'ms')
@@ -249,7 +249,7 @@ async def fetch_contents(request):
     except StopIteration:
         raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
 
-    dest = subdir.joinpath(PurePath(filename).name)
+    dest = subdir.joinpath(PurePosixPath(filename).name)
     if not await exists(dest):
         raise web.HTTPNotFound(reason='"not ok: filename does not exist"')
     async with aiofiles.open(dest, 'r') as fh:
@@ -279,7 +279,7 @@ async def fetch_contents_b(request):
     except StopIteration:
         raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
 
-    dest = subdir.joinpath(PurePath(filename).name)
+    dest = subdir.joinpath(PurePosixPath(filename).name)
     if not await exists(dest):
         raise web.HTTPNotFound(reason='"not ok: filename does not exist"')
     async with aiofiles.open(dest, 'rb') as fh:
@@ -318,7 +318,7 @@ async def update_json(request):
     except StopIteration:
         raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
 
-    dest = subdir.joinpath(PurePath(filename).name)
+    dest = subdir.joinpath(PurePosixPath(filename).name)
     await save_json(dest, content)
     return json_response('ok')
 
@@ -360,7 +360,7 @@ async def update_json_gz(request):
     except StopIteration:
         raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
 
-    dest = subdir.joinpath(PurePath(filename).name)
+    dest = subdir.joinpath(PurePosixPath(filename).name)
     await save_json(dest, content)
     return json_response('ok')
 
@@ -423,7 +423,7 @@ async def update_time(request):
         raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
 
     utime(
-        subdir.joinpath(PurePath(filename).name),
+        subdir.joinpath(PurePosixPath(filename).name),
         mktime(parsedate(mtime))
     )
     return json_response('ok')
@@ -473,7 +473,7 @@ async def write_file(request):
         except StopIteration:
             raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
 
-        with subdir.joinpath(PurePath(filename).name).open('wb') as dest:
+        with subdir.joinpath(PurePosixPath(filename).name).open('wb') as dest:
             copyfileobj(tmp, dest)
 
         return json_response('ok')
@@ -500,7 +500,7 @@ async def fetch_json(request):
     except StopIteration:
         raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
 
-    dest = subdir.joinpath(PurePath(filename).name)
+    dest = subdir.joinpath(PurePosixPath(filename).name)
     if not await exists(dest):
         raise web.HTTPNotFound(reason='"not ok: filename not found"')
     resp = json_response(await load_json(dest))
@@ -556,7 +556,7 @@ async def rm_dir(request):
 
     try:
         subdir = dirs_cache.get_subdir(
-            PurePath(path_param).joinpath(PurePath(dir_name).name))
+            PurePosixPath(path_param).joinpath(PurePosixPath(dir_name).name))
     except StopIteration:
         raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
 
@@ -592,8 +592,8 @@ async def replace_item(request):
     except StopIteration:
         raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
 
-    oldfn = subdir.joinpath(PurePath(filename).name)
-    newfn = subdir.joinpath(PurePath(new_filename).name)
+    oldfn = subdir.joinpath(PurePosixPath(filename).name)
+    newfn = subdir.joinpath(PurePosixPath(new_filename).name)
 
     if await exists(newfn):
         # if await exists(oldfn):
@@ -642,7 +642,7 @@ async def rename_item(item_type, request):
             raise web.HTTPBadRequest(reason='"not ok: item does not exist"')
 
     else:
-        oldin = subdir.joinpath(PurePath(itemname).name)
+        oldin = subdir.joinpath(PurePosixPath(itemname).name)
         if not oldin.is_file(follow_symlinks=False):
             raise web.HTTPBadRequest(reason='"not ok: item is not a file"')
 
