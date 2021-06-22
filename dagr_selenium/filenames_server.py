@@ -10,7 +10,7 @@ from io import BytesIO, StringIO
 from logging.handlers import RotatingFileHandler
 from operator import itemgetter
 from os import utime
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PosixPath, PurePosixPath
 from shutil import copyfileobj
 from tempfile import TemporaryFile
 from time import mktime, time_ns
@@ -383,9 +383,12 @@ async def mk_dir(request):
     try:
         subdir = dirs_cache.get_subdir(path_param)
     except StopIteration:
-        raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
-
-    dir_item = subdir if dir_name is None else subdir.joinpath(PurePosixPath(dir_name))
+        if dir_name is None:
+            dir_item = PosixPath(path_param)        
+        else:
+            raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
+    if subdir:
+        dir_item = subdir if dir_name is None else subdir.joinpath(PurePosixPath(dir_name))
 
     if not str(subdir) == os.path.commonpath((subdir, await abspath(dir_item))):
         raise web.HTTPBadRequest(reason='"not ok: bad relative new dir path"')
