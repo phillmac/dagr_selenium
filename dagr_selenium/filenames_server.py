@@ -635,9 +635,10 @@ async def rename_item(item_type, request):
 
     if item_type == 'dir':
         try:
+            old_path = subdir.joinpath(itemname)
             oldin = dirs_cache.get_subdir(subdir.joinpath(itemname))
         except StopIteration:
-            print(str(oldin), oldin.exists())
+            print(str(old_path), old_path.exists())
             raise web.HTTPBadRequest(reason='"not ok: item does not exist"')
 
     else:
