@@ -10,7 +10,7 @@ from io import BytesIO, StringIO
 from logging.handlers import RotatingFileHandler
 from operator import itemgetter
 from os import utime
-from pathlib import Path, PurePath
+from pathlib import Path, PurePosixPath
 from shutil import copyfileobj
 from tempfile import TemporaryFile
 from time import mktime, time_ns
