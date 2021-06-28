@@ -382,8 +382,8 @@ def rip_gallery(deviant, full_crawl=False, disable_resolve=None):
     rip('gallery', deviant, full_crawl=full_crawl, disable_resolve=disable_resolve)
 
 
-def rip_favs(deviant, full_crawl=False):
-    rip('favs', deviant, full_crawl=full_crawl)
+def rip_favs(deviant, full_crawl=False, disable_resolve=None):
+    rip('favs', deviant, full_crawl=full_crawl, disable_resolve=disable_resolve)
 
 
 def rip_galleries(deviants, full_crawl=False):
