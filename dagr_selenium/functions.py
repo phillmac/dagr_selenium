@@ -11,8 +11,8 @@ from dagr_revamped.DAGRHTTPIo import DAGRHTTPIo
 from dagr_revamped.DAGRManager import DAGRManager
 from dagr_revamped.lib import DagrException
 from dagr_revamped.TCPKeepAliveSession import TCPKeepAliveSession
-from dagr_revamped.utils import (artist_from_url, dump_html, get_html_name,
-                                 load_json, save_json, get_remote_io)
+from dagr_revamped.utils import (
+    artist_from_url, get_html_name, get_remote_io, load_json, save_json)
 from selenium.common.exceptions import (NoSuchElementException,
                                         StaleElementReferenceException)
 from selenium.common.exceptions import \
