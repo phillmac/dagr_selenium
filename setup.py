@@ -16,7 +16,7 @@ setup(
         'python-dotenv==0.17.1',
         'dagr_revamped @ git+https://github.com/phillmac/dagr_revamped@0.2.85-dev.2',
         'selenium==3.141.0',
-        'aiofiles @ git+https://github.com/phillmac/aiofiles@0.11.0dev0',
+        'aiofiles @ git+https://github.com/phillmac/aiofiles@0.12.0dev0',
         'aiohttp==3.7.4.post0'
     ],
     extras_require={

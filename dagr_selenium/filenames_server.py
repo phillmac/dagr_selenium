@@ -16,7 +16,7 @@ from tempfile import TemporaryFile
 from time import mktime, time_ns
 
 import aiofiles
-from aiofiles.os import exists, mkdir, remove, rename, replace, rmdir, abspath
+from aiofiles.os import exists, makedirs, remove, rename, replace, rmdir, abspath
 from aiohttp import ClientSession, web
 from aiohttp.web_response import json_response
 from dotenv import load_dotenv
@@ -398,7 +398,7 @@ async def mk_dir(request):
                 reason='"not ok: bad relative new dir path"')
 
     try:
-        await mkdir(dir_item, parents=True)
+        await makedirs(dir_item)
     except FileExistsError:
         raise web.HTTPBadRequest(reason='"not ok: dir already exists"')
     return json_response('ok')
