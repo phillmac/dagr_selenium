@@ -22,6 +22,9 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
 
 WORKDIR /dagr_selenium
 
+COPY requirements-static.txt ./requirements-static.txt
+RUN pip install -r requirements-static.txt
+
 COPY . .
 
 RUN pip install .[full] && mkdir -v /output /DA /home/dagr \
