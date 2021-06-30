@@ -7,7 +7,7 @@ from time import sleep, time
 
 from dagr_revamped.dagr_logging import log
 from dagr_revamped.DAGRCache import DAGRCache
-from dagr_revamped.DAGRHTTPIo import DAGRHTTPIo
+from dagr_revamped.builtin_plugins.classes.DAGRHTTPIo import DAGRHTTPIo
 from dagr_revamped.DAGRManager import DAGRManager
 from dagr_revamped.exceptions import DagrCacheLockException
 from dagr_revamped.lib import DagrException
