@@ -574,6 +574,30 @@ async def rm_dir(request):
     raise web.HTTPBadRequest(reason='"not ok: filename does not exist"')
 
 
+async def lock_dir(request):
+    params = await request.json()
+
+    path_param = params.get('path', None)
+
+    print(params)
+
+    if path_param is None:
+        raise web.HTTPBadRequest(reason='"not ok: path param missing"')
+
+    subdir = None
+
+    try:
+        subdir = dirs_cache.get_subdir(path_param)
+    except StopIteration:
+        raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
+
+    if await exists(subdir):
+        await rmdir(subdir)
+
+        return json_response('ok')
+    raise web.HTTPBadRequest(reason='"not ok: filename does not exist"')
+
+
 async def replace_item(request):
     params = await request.json()
 
@@ -678,6 +702,7 @@ def run_app():
     app.router.add_delete('/dir', rm_dir)
     app.router.add_patch('/dir', lambda request: rename_item('dir', request))
     app.router.add_post('/file/utime', update_time)
+    app.router.add_post('/dir/lock', lock_dir)
     app.router.add_post('/json', update_json)
     app.router.add_post('/json_gz', update_json_gz)
     app.router.add_post('/file', write_file)
