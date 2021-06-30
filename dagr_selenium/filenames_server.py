@@ -428,11 +428,11 @@ async def update_time(request):
         subdir = dirs_cache.get_subdir(path_param)
     except StopIteration:
         raise web.HTTPBadRequest(reason='"not ok: path does not exist"')
-
-    utime(
-        subdir.joinpath(PurePosixPath(filename).name),
-        mktime(parsedate(mtime))
-    )
+    try:
+        mod_time = mktime(parsedate(mtime))
+    except:
+        raise web.HTTPBadRequest(reason='"not ok: unable to handle mtime"')
+    utime(subdir.joinpath(PurePosixPath(filename).name), (mod_time, mod_time))
     return json_response('ok')
 
 
