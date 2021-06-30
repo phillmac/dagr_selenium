@@ -8,6 +8,7 @@ ENV dagr.plugins.selenium.webdriver_mode=remote
 ENV dagr.plugins.selenium.webdriver_url="http://chrome:4444/wd/hub"
 ENV dagr.plugins.classes.browser=selenium
 ENV dagr.plugins.classes.crawler=selenium
+ENV dagr.plugins.classes.crawler_cache=selenium
 
 ENV PATH="/home/dagr/.local/bin:${PATH}"
 
