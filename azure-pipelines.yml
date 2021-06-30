@@ -19,7 +19,16 @@ stages:
     displayName: Build
     pool:
       vmImage: ubuntu-latest
-    steps:
+    steps:    
+    - task: Docker@2
+      displayName: Pull previous image
+      inputs:
+        containerRegistry: 'Docker Hub'
+        repository: 'phillmac/dagr_selenium'
+        command: pull
+        tags: |
+          latest
+
     - task: Docker@2
       displayName: Build an image
       inputs:
