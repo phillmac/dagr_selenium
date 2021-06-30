@@ -26,8 +26,7 @@ stages:
         containerRegistry: 'Docker Hub'
         repository: 'phillmac/dagr_selenium'
         command: pull
-        tags: |
-          latest
+        tags: latest
 
     - task: Docker@2
       displayName: Build an image
