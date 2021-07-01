@@ -10,8 +10,9 @@ from time import sleep
 from .functions import check_stop_file, config, flush_errors_to_queue, manager, session
 from .QueueItem import QueueItem
 
+queueman_fetch_url = environ.get('QUEUEMAN_FETCH_URL', None) or config.get('dagr.plugins.selenium', 'queueman_fetch_url', key_errors=False) or 'http://127.0.0.1:3005/item'
 
-queueman_url = environ.get('QUEUEMAN_URL', None) or config.get('dagr.plugins.selenium', 'queueman_url', key_errors=False) or 'http://127.0.0.1:3005'
+queueman_enqueue_url = environ.get('QUEUEMAN_ENQUEUE_URL', None) or config.get('dagr.plugins.selenium', 'queueman_enqueue_url', key_errors=False) or 'http://127.0.0.1:3005/items'
 
 env_level = environ.get('dagr.worker.logging.level', None)
 level_mapped = config.map_log_level(
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 async def fetch_item():
     try:
-        resp = session.get(queueman_url)
+        resp = session.get(queueman_fetch_url)
         resp.raise_for_status()
         return QueueItem(**(resp.json()))
     except:
@@ -44,7 +45,7 @@ async def process_item(item):
         except:
             logger.exception('Error while saving error item')
         try:
-            flush_errors_to_queue(queueman_url)
+            flush_errors_to_queue(queueman_enqueue_url)
         except:
             pass
 
@@ -53,7 +54,7 @@ async def __main__():
     manager.set_stop_check(check_stop_file)
     with manager.get_dagr() as dagr:
         logger.info('Flushing previous errors')
-        flush_errors_to_queue(queueman_url)
+        flush_errors_to_queue(queueman_enqueue_url)
         logger.info("Worker ready")
         while not check_stop_file('STOP_WORKER'):
             logger.info("Fetching work item")
