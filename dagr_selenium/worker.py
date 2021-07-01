@@ -27,7 +27,8 @@ logger = logging.getLogger(__name__)
 
 urls_debug = pformat({
     'queueman_fetch_url':  queueman_fetch_url,
-    'queueman_enqueue_url': queueman_enqueue_url
+    'queueman_enqueue_url': queueman_enqueue_url,
+    'enqueue_url_config': config.get('dagr.plugins.selenium', 'queueman_enqueue_url', key_errors=False)
 })
 
 logger.info(f"Queman Urls: {urls_debug}")
