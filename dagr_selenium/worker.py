@@ -53,7 +53,7 @@ async def __main__():
     manager.set_stop_check(check_stop_file)
     with manager.get_dagr() as dagr:
         logger.info('Flushing previous errors')
-        flush_errors_to_queue()
+        flush_errors_to_queue(queueman_url)
         logger.info("Worker ready")
         while not check_stop_file('STOP_WORKER'):
             logger.info("Fetching work item")
