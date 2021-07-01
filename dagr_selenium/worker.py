@@ -14,6 +14,8 @@ queueman_fetch_url = environ.get('QUEUEMAN_FETCH_URL', None) or config.get('dagr
 
 queueman_enqueue_url = environ.get('QUEUEMAN_ENQUEUE_URL', None) or config.get('dagr.plugins.selenium', 'queueman_enqueue_url', key_errors=False) or 'http://127.0.0.1:3005/items'
 
+
+
 env_level = environ.get('dagr.worker.logging.level', None)
 level_mapped = config.map_log_level(
     int(env_level)) if not env_level is None else None
@@ -22,6 +24,11 @@ manager.set_mode('worker')
 manager.init_logging(level_mapped)
 
 logger = logging.getLogger(__name__)
+
+logger.info('Urls:', pformat({
+    'queueman_fetch_url':  queueman_fetch_url,
+    'queueman_enqueue_url': queueman_enqueue_url
+}))
 
 async def fetch_item():
     try:
