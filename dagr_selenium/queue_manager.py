@@ -12,8 +12,11 @@ from aiohttp.web_response import json_response
 from dagr_revamped.lib import DagrException
 from dagr_revamped.utils import artist_from_url, convert_queue
 
-from dagr_selenium.functions import config, load_bulk, manager, update_bulk_galleries
+from dagr_selenium.functions import (config, load_bulk, manager,
+                                     update_bulk_galleries)
 from dagr_selenium.QueueItem import QueueItem
+
+from .JSONHTTPBadRequest import JSONHTTPBadRequest
 
 queue = asyncio.PriorityQueue()
 
@@ -99,7 +102,7 @@ async def resolve_deviant(deviant):
         return deviant
     except DagrException:
         logger.warning(f"Unable to resolve deviant {deviant}")
-        raise web.HTTPBadRequest(reason='not ok: unable to resolve deviant')
+        raise JSONHTTPBadRequest(reason='not ok: unable to resolve deviant')
 
 
 async def add_url(request):
@@ -111,7 +114,7 @@ async def add_url(request):
     deviant = None
 
     if url is None:
-        return web.HTTPBadRequest(reason='not ok: url missing')
+        return JSONHTTPBadRequest(reason='not ok: url missing')
 
     try:
         mode = detect_mode(url)
@@ -121,7 +124,7 @@ async def add_url(request):
         if not mode in nd_modes:
             _artist_url_p, deviant, _shortname = artist_from_url(url, mode)
             if not deviant:
-                return web.HTTPBadRequest(reason='not ok: deviant missing')
+                return JSONHTTPBadRequest(reason='not ok: deviant missing')
             deviant = await resolve_deviant(deviant)
 
         mval = detect_mval(mode, url)
@@ -133,7 +136,7 @@ async def add_url(request):
         return web.Response(text='ok')
     except NotImplementedError:
         logger.warning('Unable to handle url:', exc_info=True)
-        return web.HTTPBadRequest(reason='not ok: unable to handle url')
+        return JSONHTTPBadRequest(reason='not ok: unable to handle url')
 
 
 async def update_queue_cache(queue_slug, params):
@@ -170,7 +173,7 @@ async def add_items(request):
     bg_task = BackgroundTask()
     await bg_task.run(flush_queue_cache, ())
     logger.info('Finished add_items request')
-    return web.Response(text='ok')
+    return json_response('ok')
 
 
 async def add_bulk_galleries(request):
@@ -218,7 +221,8 @@ def run_app():
     app.router.add_post(
         '/bulk/gallery', add_bulk_galleries)
     asyncio.get_event_loop().run_until_complete(load_cached_queue())
-    web.run_app(app, host='0.0.0.0', port=environ.get('QUEUEMAN_LISTEN_PORT', 3005))
+    web.run_app(app, host='0.0.0.0', port=environ.get(
+        'QUEUEMAN_LISTEN_PORT', 3005))
 
 
 class BackgroundTask:
