@@ -19,6 +19,7 @@ from selenium.common.exceptions import (NoSuchElementException,
 from selenium.common.exceptions import \
     TimeoutException as SeleniumTimeoutException
 from urllib3.util.retry import Retry
+from dagr_revamped.utils import http_post_raw
 
 click_sleep_time = 0.300
 monitor_sleep = 600
@@ -444,7 +445,7 @@ def queue_favs(deviants, priority=100, full_crawl=False):
     queue_items('favs', deviants, priority=priority, full_crawl=full_crawl)
 
 
-def flush_errors_to_queue():
+def flush_errors_to_queue(queueman_url):
     cache = manager.get_cache()
     cache_slug = 'error_items'
     errors = cache.query(cache_slug)
@@ -459,8 +460,7 @@ def flush_errors_to_queue():
             pass
         items.append(i)
     try:
-        r = session.post('http://192.168.20.50:3002/items', json=items)
-        r.raise_for_status()
+        http_post_raw(session, queueman_url, json=items)
         cache.remove(cache_slug, errors)
     except:
         logger.exception('Error while enqueueing items')

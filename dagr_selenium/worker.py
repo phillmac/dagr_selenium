@@ -10,6 +10,9 @@ from time import sleep
 from .functions import check_stop_file, config, flush_errors_to_queue, manager, session
 from .QueueItem import QueueItem
 
+
+queueman_url = environ.get('QUEUEMAN_URL', None) or config.get('dagr.plugins.selenium', 'queueman_url', key_errors=False) or 'http://127.0.0.1:3005'
+
 env_level = environ.get('dagr.worker.logging.level', None)
 level_mapped = config.map_log_level(
     int(env_level)) if not env_level is None else None
@@ -21,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 async def fetch_item():
     try:
-        resp = session.get('http://192.168.20.50:3002/item')
+        resp = session.get(queueman_url)
         resp.raise_for_status()
         return QueueItem(**(resp.json()))
     except:
@@ -41,7 +44,7 @@ async def process_item(item):
         except:
             logger.exception('Error while saving error item')
         try:
-            flush_errors_to_queue()
+            flush_errors_to_queue(queueman_url)
         except:
             pass
 

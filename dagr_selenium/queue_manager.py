@@ -218,7 +218,7 @@ def run_app():
     app.router.add_post(
         '/bulk/gallery', add_bulk_galleries)
     asyncio.get_event_loop().run_until_complete(load_cached_queue())
-    web.run_app(app, host='0.0.0.0', port=3002)
+    web.run_app(app, host='0.0.0.0', port=environ.get('QUEUEMAN_LISTEN_PORT', 3005))
 
 
 class BackgroundTask:
