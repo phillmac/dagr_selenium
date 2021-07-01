@@ -25,10 +25,12 @@ manager.init_logging(level_mapped)
 
 logger = logging.getLogger(__name__)
 
-logger.info('Urls:', pformat({
+urls_debug = pformat({
     'queueman_fetch_url':  queueman_fetch_url,
     'queueman_enqueue_url': queueman_enqueue_url
-}))
+})
+
+logger.info(f"Queman Urls: {urls_debug}")
 
 async def fetch_item():
     try:
