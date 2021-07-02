@@ -28,9 +28,15 @@ WORKDIR /dagr_selenium
 COPY requirements-static.txt ./requirements-static.txt
 RUN pip install -r requirements-static.txt
 
+
+COPY requirements.txt ./requirements.txt
+RUN pip install -r requirements.txt
+
+
+
 COPY . .
 
-RUN pip install .[full] && mkdir -v /output /DA /home/dagr \
+RUN pip install --no-dependencies . && mkdir -v /output /DA /home/dagr /home/dagr/.cache /home/dagr/.cache/dagr_selenium \
  && chown -Rv dagr:dagr /output /home/dagr /DA \
  && chmod a+rw -Rv /output /DA
 
