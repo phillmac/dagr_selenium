@@ -3,13 +3,12 @@ vscode:
     - ms-python.python
     - shardulm94.trailing-spaces
 ports:
-  port: 3002
-  onOpen: ignore
-  visibility: private
-ports:
-  port: 3005
-  onOpen: ignore
-  visibility: private
+  - port: 3002
+    onOpen: ignore
+    visibility: private
+  - port: 3005
+    onOpen: ignore
+    visibility: private
 tasks:
 - command: >
     pip install -e . &&
