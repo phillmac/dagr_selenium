@@ -1,4 +1,4 @@
-aiofiles @ git+https://github.com/phillmac/aiofiles@0.12.0dev0#egg=aiofiles
+aiofiles @ git+https://github.com/phillmac/aiofiles@0.13.0dev0#egg=aiofiles
 
 aiohttp==3.7.4.post0
 async-timeout==3.0.1
