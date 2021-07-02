@@ -4,139 +4,162 @@ import gzip
 import json
 import logging
 import mimetypes
-import os
 from email.utils import parsedate
 from io import BytesIO, StringIO
 from logging.handlers import RotatingFileHandler
 from operator import itemgetter
+from os import environ
+from os import path as os_path
 from os import utime
 from pathlib import Path, PosixPath, PurePosixPath
 from shutil import copyfileobj
 from tempfile import TemporaryFile
-from time import mktime, time_ns
+from threading import Event
+from time import mktime, time, time_ns
 
 import aiofiles
+import portalocker
 from aiofiles.os import (abspath, exists, makedirs, remove, rename, replace,
-                         rmdir)
+                         rmdir, scandir)
 from aiohttp import ClientSession, web
 from aiohttp.web_response import json_response
 from dotenv import load_dotenv
 
-from .JSONHTTPBadRequest import JSONHTTPBadRequest
+from dagr_selenium.JSONHTTPBadRequest import JSONHTTPBadRequest
+
+
+class LockEntry():
+    def __init__(self, diritem):
+        self.__diritem = diritem
+        self.__lockfile = diritem.joinpath('.lock')
+        self.__lock = portalocker.Lock(
+            self.__lockfile, fail_when_locked=True, flags=portalocker.LOCK_EX)
+        self.__expiry = time() + 300
+
+    def expired(self):
+        return time() > self.__expiry
+
+    def refresh(self):
+        self.__expiry = time + 300
+
+    def release(self):
+        self.__lock.release()
+        self.__lockfile.unlink()
+
+
+class SleepMgr():
+    def __init__(self):
+        self.__sleep = None
+
+    async def sleep(self):
+        self.__sleep = asyncio.create_task(asyncio.sleep(3600))
+        try:
+            await self.__sleep
+        except asyncio.CancelledError:
+            pass
+
+    def cancel_sleep(self):
+        if self.__sleep:
+            self.__sleep.cancel()
+
 
 load_dotenv()
-
 mimetypes.init()
 
 
-class DirsCache():
-    def __init__(self):
-        self.__dirs_cache = dict()
-        self.__dirs_cache[tuple()] = Path.cwd()
-
-    def get_subdir(self, dirpath):
-        if isinstance(dirpath, str):
-            dirpath = PurePosixPath(dirpath)
-        cache_item = None
-        for pnum in range(0, len(dirpath.parts)+1):
-            pslice = dirpath.parts[0: pnum]
-            # print('pslice:', pslice)
-            fetched_cache_item = self.__dirs_cache.get(pslice, None)
-            if fetched_cache_item is None:
-                dirname = dirpath.parts[pnum - 1]
-                # print('dirname:', dirname)
-                fetched_cache_item = Path(next((d for d in os.scandir(
-                    cache_item) if d.name == dirname and d.is_dir(follow_symlinks=False))))
-                self.__dirs_cache[pslice] = fetched_cache_item
-                cache_item = fetched_cache_item
-            else:
-                cache_item = fetched_cache_item
-            # print('cache_item:', cache_item)
-        return cache_item
+async def get_subdir(app, dirpath):
+    if isinstance(dirpath, str):
+        dirpath = PurePosixPath(dirpath)
+    cache_item = None
+    dirs_cache = app['dirs_cache']
+    for pnum in range(0, len(dirpath.parts)+1):
+        pslice = dirpath.parts[0: pnum]
+        # print('pslice:', pslice)
+        fetched_cache_item = dirs_cache.get(pslice, None)
+        if fetched_cache_item is None:
+            dirname = dirpath.parts[pnum - 1]
+            # print('dirname:', dirname)
+            fetched_cache_item = Path(await (d async for d in await scandir(
+                cache_item) if d.name == dirname and d.is_dir(follow_symlinks=False)).__anext__())
+            dirs_cache[pslice] = fetched_cache_item
+            cache_item = fetched_cache_item
+        else:
+            cache_item = fetched_cache_item
+        # print('cache_item:', cache_item)
+    return cache_item
 
 
-dirs_cache = DirsCache()
-
-
-class LoggersCache():
-    def __init__(self):
-        self.__loggers_cache = dict()
-
-    async def create(self, request):
-        params = await request.json()
-        print(params)
-        hostMode, maxBytes, backupCount, frmt = itemgetter(
-            'hostMode', 'maxBytes', 'backupCount', 'frmt')(params)
-        if hostMode in self.__loggers_cache:
-            raise JSONHTTPBadRequest(reason='Logger already open')
-        fn = f"{hostMode}.dagr.log.txt"
-        handler = RotatingFileHandler(
-            filename=fn, maxBytes=maxBytes, backupCount=backupCount)
-        handler.setFormatter(logging.Formatter(frmt))
-        self.__loggers_cache[hostMode] = handler
-        return json_response('ok')
-
-    async def handle(self, request):
-        params = await request.json()
-        hostMode = params['hostMode']
-        if not hostMode in self.__loggers_cache:
-            raise JSONHTTPBadRequest(reason='Logger not open')
-        handler = self.__loggers_cache[hostMode]
-        recordParams = params['record']
-        record = logging.makeLogRecord(recordParams)
-        handler.handle(record)
-        return json_response('ok')
-
-    async def remove(self, request):
-        params = await request.json()
-        print(params)
-        hostMode = params['hostMode']
-        if not hostMode in self.__loggers_cache:
-            raise JSONHTTPBadRequest(reason='Logger not open')
-        handler = self.__loggers_cache[hostMode]
-        handler.flush()
-        handler.close
-        del self.__loggers_cache[hostMode]
-        return json_response('ok')
-
-    async def exists(self, request):
-        params = await request.json()
-        hostMode = params['hostMode']
-        return json_response({'exists': hostMode in self.__loggers_cache})
-
-
-logger_cache = LoggersCache()
-
-
-class BackgroundTask:
-    async def run(self, coro, args, callback=None):
-        loop = asyncio.get_event_loop()
-        loop.run_in_executor(None, self.task_runner, coro, args, callback)
-
-    def task_runner(self, coro, args, callback):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-        fut = asyncio.ensure_future(coro(*args))
-        if callback is not None:
-            fut.add_done_callback(callback)
-
-        loop.run_until_complete(fut)
-        loop.close()
-
-
-async def fileslist(request):
+async def create_logger(request):
     params = await request.json()
+    print(params)
+    hostMode, maxBytes, backupCount, frmt = itemgetter(
+        'hostMode', 'maxBytes', 'backupCount', 'frmt')(params)
+
+    loggers_cache = request.app['loggers_cache']
+
+    if loggers_cache.exists(hostMode):
+        raise JSONHTTPBadRequest(reason='Logger already open')
+
+    fn = f"{hostMode}.dagr.log.txt"
+    handler = RotatingFileHandler(
+        filename=fn, maxBytes=maxBytes, backupCount=backupCount)
+    handler.setFormatter(logging.Formatter(frmt))
+    loggers_cache.add_handler(hostMode, handler)
+    return json_response('ok')
+
+
+async def handle_logger(self, request):
+    params = await request.json()
+    loggers_cache = request.app['loggers_cache']
+    hostMode = params['hostMode']
+    if not hostMode in loggers_cache:
+        raise JSONHTTPBadRequest(reason='Logger not open')
+    handler = loggers_cache[hostMode]
+    recordParams = params['record']
+    record = logging.makeLogRecord(recordParams)
+    handler.handle(record)
+    return json_response('ok')
+
+
+async def remove_logger(self, request):
+    params = await request.json()
+    loggers_cache = request.app['loggers_cache']
+
+    print(params)
+
+    hostMode = params['hostMode']
+    if not hostMode in loggers_cache:
+        raise JSONHTTPBadRequest(reason='Logger not open')
+    handler = loggers_cache[hostMode]
+    handler.flush()
+    handler.close()
+    del loggers_cache[hostMode]
+    return json_response('ok')
+
+
+async def query_logger(self, request):
+    params = await request.json()
+    hostMode = params['hostMode']
+    return json_response({'exists': hostMode in request.app['loggers_cache']})
+
+
+async def list_dir(request):
+    params = await request.json()
+
     path_param = params.get('path', None)
+
+    include_dirs = params.get('include_dirs', False)
+
     if path_param is None:
-        raise JSONHTTPBadRequest(reason='"not ok: path param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
     try:
-        subdir = dirs_cache.get_subdir(path_param)
+        subdir = get_subdir(request.app, path_param)
         print('param:', path_param, 'subdir:', subdir)
-        return json_response([f.name for f in os.scandir(subdir) if f.is_file()])
+        return json_response([f.name async for f in await scandir(subdir)
+                              if include_dirs or f.is_file()])
     except StopIteration:
-        raise JSONHTTPBadRequest(reason='"not ok: path does not exist"')
+        raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
 
 async def file_exists(request):
@@ -145,16 +168,16 @@ async def file_exists(request):
     path_param = params.get('path', None)
     itemname = params.get('itemname', None)
     if path_param is None:
-        raise JSONHTTPBadRequest(reason='"not ok: path param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
     if itemname is None:
-        raise JSONHTTPBadRequest(reason='"not ok: itemname param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: itemname param missing')
 
     subdir = None
     result = False
 
     try:
-        subdir = dirs_cache.get_subdir(path_param)
+        subdir = get_subdir(request.app, path_param)
     except StopIteration:
         print('Subdir does not exist')
         return json_response({'exists': False})
@@ -165,7 +188,8 @@ async def file_exists(request):
     print('exists', result, 'time:', '{:.2f}'.format(t_spent)+'ms')
     if result:
         if not params.get('update_cache', None) is False:
-            await BackgroundTask().run(check_update_fn_cache, (params, subdir, path_param))
+            asyncio.create_task(check_update_fn_cache(
+                params, subdir, path_param))
     return json_response({'exists': result})
 
 
@@ -177,13 +201,13 @@ async def dir_exists(request):
     itemname = params.get('itemname', None)
 
     if path_param is None:
-        raise JSONHTTPBadRequest(reason='"not ok: path param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
     # if itemname is None:
-    #     raise JSONHTTPBadRequest(reason='"not ok: itemname param missing"')
+    #     raise JSONHTTPBadRequest(reason='not ok: itemname param missing')
 
     try:
-        subdir = dirs_cache.get_subdir(path_param)
+        subdir = get_subdir(request.app, path_param)
     except StopIteration:
         print('Subdir does not exist')
         return json_response({'exists': False})
@@ -194,7 +218,7 @@ async def dir_exists(request):
 
 
 async def check_update_fn_cache(params, subdir, path_param, session=None):
-    url = os.environ.get('FETCH_CACHE_URL', 'http://127.0.0.1:3003/file')
+    url = environ.get('FETCH_CACHE_URL', 'http://127.0.0.1:3003/file')
 
     try:
         if session is None:
@@ -212,11 +236,11 @@ async def check_update_fn_cache(params, subdir, path_param, session=None):
 
 async def update_fn_cache(subdir, path_param, session=None):
     t_now = time_ns()
-    filenames = [f.name for f in os.scandir(subdir) if f.is_file()]
+    filenames = [f.name async for f in await scandir(subdir) if f.is_file()]
     t_spent = (time_ns() - t_now) / 1e6
     print('Time loading filenames list', '{:.2f}'.format(t_spent) + 'ms')
 
-    url = os.environ.get('UPDATE_CACHE_URL', 'http://127.0.0.1:3003/files')
+    url = environ.get('UPDATE_CACHE_URL', 'http://127.0.0.1:3003/files')
 
     data = {'path': path_param, 'filenames': filenames}
 
@@ -240,21 +264,21 @@ async def fetch_contents(request):
     print(params)
 
     if path_param is None:
-        raise JSONHTTPBadRequest(reason='"not ok: path param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
     if filename is None:
-        raise JSONHTTPBadRequest(reason='"not ok: filename param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: filename param missing')
 
     subdir = None
 
     try:
-        subdir = dirs_cache.get_subdir(path_param)
+        subdir = get_subdir(request.app, path_param)
     except StopIteration:
-        raise JSONHTTPBadRequest(reason='"not ok: path does not exist"')
+        raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
     dest = subdir.joinpath(PurePosixPath(filename).name)
     if not await exists(dest):
-        raise web.HTTPNotFound(reason='"not ok: filename does not exist"')
+        raise web.HTTPNotFound(reason='not ok: filename does not exist')
     async with aiofiles.open(dest, 'r') as fh:
         resp = web.Response(text=await fh.read())
         resp.enable_compression()
@@ -270,21 +294,21 @@ async def fetch_contents_b(request):
     print(params)
 
     if path_param is None:
-        raise JSONHTTPBadRequest(reason='"not ok: path param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
     if filename is None:
-        raise JSONHTTPBadRequest(reason='"not ok: filename param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: filename param missing')
 
     subdir = None
 
     try:
-        subdir = dirs_cache.get_subdir(path_param)
+        subdir = get_subdir(request.app, path_param)
     except StopIteration:
-        raise JSONHTTPBadRequest(reason='"not ok: path does not exist"')
+        raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
     dest = subdir.joinpath(PurePosixPath(filename).name)
     if not await exists(dest):
-        raise web.HTTPNotFound(reason='"not ok: filename does not exist"')
+        raise web.HTTPNotFound(reason='not ok: filename does not exist')
     async with aiofiles.open(dest, 'rb') as fh:
         ct, _enc = mimetypes.guess_type(dest)
 
@@ -306,20 +330,20 @@ async def update_json(request):
     print({'path': path_param, 'filename': filename, 'content': len(content)})
 
     if path_param is None:
-        raise JSONHTTPBadRequest(reason='"not ok: path param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
     if filename is None:
-        raise JSONHTTPBadRequest(reason='"not ok: filename param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: filename param missing')
 
     if content is None:
-        raise JSONHTTPBadRequest(reason='"not ok: content param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: content param missing')
 
     subdir = None
 
     try:
-        subdir = dirs_cache.get_subdir(path_param)
+        subdir = get_subdir(request.app, path_param)
     except StopIteration:
-        raise JSONHTTPBadRequest(reason='"not ok: path does not exist"')
+        raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
     dest = subdir.joinpath(PurePosixPath(filename).name)
     await save_json(dest, content)
@@ -348,20 +372,20 @@ async def update_json_gz(request):
     print({'path': path_param, 'filename': filename, 'content': len(content)})
 
     if path_param is None:
-        raise JSONHTTPBadRequest(reason='"not ok: path param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
     if filename is None:
-        raise JSONHTTPBadRequest(reason='"not ok: filename param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: filename param missing')
 
     if content is None:
-        raise JSONHTTPBadRequest(reason='"not ok: content param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: content param missing')
 
     subdir = None
 
     try:
-        subdir = dirs_cache.get_subdir(path_param)
+        subdir = get_subdir(request.app, path_param)
     except StopIteration:
-        raise JSONHTTPBadRequest(reason='"not ok: path does not exist"')
+        raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
     dest = subdir.joinpath(PurePosixPath(filename).name)
     await save_json(dest, content)
@@ -376,34 +400,34 @@ async def mk_dir(request):
     dir_name = params.get('dir_name', None)
 
     if path_param is None:
-        raise JSONHTTPBadRequest(reason='"not ok: path param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
     # if dir_name is None:
-    #     raise JSONHTTPBadRequest(reason='"not ok: dir_name param missing"')
+    #     raise JSONHTTPBadRequest(reason='not ok: dir_name param missing')
 
     subdir = None
 
     try:
-        subdir = dirs_cache.get_subdir(path_param)
+        subdir = get_subdir(request.app, path_param)
     except StopIteration:
         if dir_name is None:
             dir_item = PosixPath(path_param)
-            if not str(PosixPath.cwd()) == os.path.commonpath((Path.cwd(), await abspath(dir_item))):
+            if not str(PosixPath.cwd()) == os_path.commonpath((Path.cwd(), await abspath(dir_item))):
                 raise JSONHTTPBadRequest(
-                    reason='"not ok: bad relative new dir path"')
+                    reason='not ok: bad relative new dir path')
         else:
-            raise JSONHTTPBadRequest(reason='"not ok: path does not exist"')
+            raise JSONHTTPBadRequest(reason='not ok: path does not exist')
     if subdir:
         dir_item = subdir if dir_name is None else subdir.joinpath(
             PurePosixPath(dir_name))
-        if not str(subdir) == os.path.commonpath((subdir, await abspath(dir_item))):
+        if not str(subdir) == os_path.commonpath((subdir, await abspath(dir_item))):
             raise JSONHTTPBadRequest(
-                reason='"not ok: bad relative new dir path"')
+                reason='not ok: bad relative new dir path')
 
     try:
         await makedirs(dir_item)
     except FileExistsError:
-        raise JSONHTTPBadRequest(reason='"not ok: dir already exists"')
+        raise JSONHTTPBadRequest(reason='not ok: dir already exists')
     return json_response('ok')
 
 
@@ -417,24 +441,24 @@ async def update_time(request):
     print(params)
 
     if path_param is None:
-        raise JSONHTTPBadRequest(reason='"not ok: path param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
     if filename is None:
-        raise JSONHTTPBadRequest(reason='"not ok: filename param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: filename param missing')
 
     if mtime is None:
-        raise JSONHTTPBadRequest(reason='"not ok: mtime param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: mtime param missing')
 
     subdir = None
 
     try:
-        subdir = dirs_cache.get_subdir(path_param)
+        subdir = get_subdir(request.app, path_param)
     except StopIteration:
-        raise JSONHTTPBadRequest(reason='"not ok: path does not exist"')
+        raise JSONHTTPBadRequest(reason='not ok: path does not exist')
     try:
         mod_time = mktime(parsedate(mtime))
     except:
-        raise JSONHTTPBadRequest(reason='"not ok: unable to handle mtime"')
+        raise JSONHTTPBadRequest(reason='not ok: unable to handle mtime')
     utime(subdir.joinpath(PurePosixPath(filename).name), (mod_time, mod_time))
     return json_response('ok')
 
@@ -471,17 +495,17 @@ async def write_file(request):
               'size': params['size']})
 
         if path_param is None:
-            raise JSONHTTPBadRequest(reason='"not ok: path param missing"')
+            raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
         if filename is None:
-            raise JSONHTTPBadRequest(reason='"not ok: filename param missing"')
+            raise JSONHTTPBadRequest(reason='not ok: filename param missing')
 
         subdir = None
 
         try:
-            subdir = dirs_cache.get_subdir(path_param)
+            subdir = get_subdir(request.app, path_param)
         except StopIteration:
-            raise JSONHTTPBadRequest(reason='"not ok: path does not exist"')
+            raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
         with subdir.joinpath(PurePosixPath(filename).name).open('wb') as dest:
             copyfileobj(tmp, dest)
@@ -498,21 +522,21 @@ async def fetch_json(request):
     print(params)
 
     if path_param is None:
-        raise JSONHTTPBadRequest(reason='"not ok: path param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
     if filename is None:
-        raise JSONHTTPBadRequest(reason='"not ok: filename param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: filename param missing')
 
     subdir = None
 
     try:
-        subdir = dirs_cache.get_subdir(path_param)
+        subdir = get_subdir(request.app, path_param)
     except StopIteration:
-        raise JSONHTTPBadRequest(reason='"not ok: path does not exist"')
+        raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
     dest = subdir.joinpath(PurePosixPath(filename).name)
     if not await exists(dest):
-        raise web.HTTPNotFound(reason='"not ok: filename not found"')
+        raise web.HTTPNotFound(reason='not ok: filename not found')
     resp = json_response(await load_json(dest))
     resp.enable_compression()
     return resp
@@ -557,27 +581,27 @@ async def rm_dir(request):
     print(params)
 
     if path_param is None:
-        raise JSONHTTPBadRequest(reason='"not ok: path param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
     if dir_name is None:
-        raise JSONHTTPBadRequest(reason='"not ok: dir_name param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: dir_name param missing')
 
     subdir = None
 
     try:
-        subdir = dirs_cache.get_subdir(
-            PurePosixPath(path_param).joinpath(PurePosixPath(dir_name).name))
+        subdir = get_subdir(request.app,
+                            PurePosixPath(path_param).joinpath(PurePosixPath(dir_name).name))
     except StopIteration:
-        raise JSONHTTPBadRequest(reason='"not ok: path does not exist"')
+        raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
     if await exists(subdir):
         await rmdir(subdir)
 
         return json_response('ok')
-    raise JSONHTTPBadRequest(reason='"not ok: filename does not exist"')
+    raise JSONHTTPBadRequest(reason='not ok: filename does not exist')
 
 
-async def lock_dir(request):
+async def query_lock(request):
     params = await request.json()
 
     path_param = params.get('path', None)
@@ -585,20 +609,100 @@ async def lock_dir(request):
     print(params)
 
     if path_param is None:
-        raise JSONHTTPBadRequest(reason='"not ok: path param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
     subdir = None
 
     try:
-        subdir = dirs_cache.get_subdir(path_param)
+        subdir = get_subdir(request.app, path_param)
     except StopIteration:
-        raise JSONHTTPBadRequest(reason='"not ok: path does not exist"')
+        raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
     if await exists(subdir):
-        await rmdir(subdir)
+        return json_response({'locked': not request.app['locks_cache'].get(subdir, None) is None})
 
+    raise JSONHTTPBadRequest(reason='not ok: filename does not exist')
+
+
+async def aquire_lock(request):
+    params = await request.json()
+
+    path_param = params.get('path', None)
+
+    print(params)
+
+    if path_param is None:
+        raise JSONHTTPBadRequest(reason='not ok: path param missing')
+
+    subdir = None
+
+    try:
+        subdir = get_subdir(request.app, path_param)
+    except StopIteration:
+        raise JSONHTTPBadRequest(reason='not ok: path does not exist')
+
+    if await exists(subdir):
+        locks_cache = request.app['locks_cache']
+        if not locks_cache.get(str(subdir), None) is None:
+            raise JSONHTTPBadRequest(reason='not ok: path is already locked')
+        locks_cache[str(subdir)] = LockEntry(subdir)
         return json_response('ok')
-    raise JSONHTTPBadRequest(reason='"not ok: filename does not exist"')
+    raise JSONHTTPBadRequest(reason='not ok: filename does not exist')
+
+
+async def release_lock(request):
+    params = await request.json()
+
+    path_param = params.get('path', None)
+
+    print(params)
+
+    if path_param is None:
+        raise JSONHTTPBadRequest(reason='not ok: path param missing')
+
+    subdir = None
+
+    try:
+        subdir = get_subdir(request.app, path_param)
+    except StopIteration:
+        raise JSONHTTPBadRequest(reason='not ok: path does not exist')
+
+    if await exists(subdir):
+        subdir_str = str(subdir)
+        locks_cache = request.app['locks_cache']
+        if locks_cache.get(subdir_str, None) is None:
+            raise JSONHTTPBadRequest(reason='not ok: path is not locked')
+        locks_cache[subdir_str].release()
+        del locks_cache[subdir_str]
+        return json_response('ok')
+    raise JSONHTTPBadRequest(reason='not ok: filename does not exist')
+
+
+async def refresh_lock(request):
+    params = await request.json()
+
+    path_param = params.get('path', None)
+
+    print(params)
+
+    if path_param is None:
+        raise JSONHTTPBadRequest(reason='not ok: path param missing')
+
+    subdir = None
+
+    try:
+        subdir = get_subdir(request.app, path_param)
+    except StopIteration:
+        raise JSONHTTPBadRequest(reason='not ok: path does not exist')
+
+    if await exists(subdir):
+        subdir_str = str(subdir)
+        locks_cache = request.app['locks_cache']
+        if locks_cache.get(subdir_str, None) is None:
+            raise JSONHTTPBadRequest(reason='not ok: path is not locked')
+        locks_cache[subdir_str].refresh()
+        return json_response('ok')
+    raise JSONHTTPBadRequest(reason='not ok: filename does not exist')
 
 
 async def replace_item(request):
@@ -611,20 +715,20 @@ async def replace_item(request):
     print(params)
 
     if path_param is None:
-        raise JSONHTTPBadRequest(reason='"not ok: path param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
     if filename is None:
-        raise JSONHTTPBadRequest(reason='"not ok: filename param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: filename param missing')
 
     if new_filename is None:
-        raise JSONHTTPBadRequest(reason='"not ok: new_filename param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: new_filename param missing')
 
     subdir = None
 
     try:
-        subdir = dirs_cache.get_subdir(path_param)
+        subdir = get_subdir(request.app, path_param)
     except StopIteration:
-        raise JSONHTTPBadRequest(reason='"not ok: path does not exist"')
+        raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
     oldfn = subdir.joinpath(PurePosixPath(filename).name)
     newfn = subdir.joinpath(PurePosixPath(new_filename).name)
@@ -637,7 +741,7 @@ async def replace_item(request):
 
         await replace(newfn, oldfn)
         return json_response('ok')
-    raise JSONHTTPBadRequest(reason='"not ok: filename does not exist"')
+    raise JSONHTTPBadRequest(reason='not ok: filename does not exist')
 
 
 async def rename_item(item_type, request):
@@ -650,72 +754,146 @@ async def rename_item(item_type, request):
     print(params)
 
     if path_param is None:
-        raise JSONHTTPBadRequest(reason='"not ok: path param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
     if itemname is None:
-        raise JSONHTTPBadRequest(reason='"not ok: itemname param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: itemname param missing')
 
     if new_itemname is None:
-        raise JSONHTTPBadRequest(reason='"not ok: new_itemname param missing"')
+        raise JSONHTTPBadRequest(reason='not ok: new_itemname param missing')
 
     subdir = None
 
     try:
-        subdir = dirs_cache.get_subdir(path_param)
+        subdir = get_subdir(request.app, path_param)
     except StopIteration:
-        raise JSONHTTPBadRequest(reason='"not ok: path does not exist"')
+        raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
     newin = subdir.joinpath(new_itemname)
 
-    if not str(subdir) == os.path.commonpath((subdir, await abspath(newin))):
-        raise JSONHTTPBadRequest(reason='"not ok: bad relative new item path"')
+    if not str(subdir) == os_path.commonpath((subdir, await abspath(newin))):
+        raise JSONHTTPBadRequest(reason='not ok: bad relative new item path')
 
     if item_type == 'dir':
         try:
-            oldin = dirs_cache.get_subdir(Path(path_param).joinpath(itemname))
+            oldin = get_subdir(request.app,
+                               Path(path_param).joinpath(itemname))
         except StopIteration:
-            raise JSONHTTPBadRequest(reason='"not ok: item does not exist"')
+            raise JSONHTTPBadRequest(reason='not ok: item does not exist')
 
     else:
         oldin = subdir.joinpath(PurePosixPath(itemname).name)
         if not oldin.is_file(follow_symlinks=False):
-            raise JSONHTTPBadRequest(reason='"not ok: item is not a file"')
+            raise JSONHTTPBadRequest(reason='not ok: item is not a file')
 
     if not await exists(oldin):
-        raise JSONHTTPBadRequest(reason='"not ok: item does not exist"')
+        raise JSONHTTPBadRequest(reason='not ok: item does not exist')
 
     if await exists(newin):
         raise JSONHTTPBadRequest(
-            reason='"not ok: new item already exists"')
+            reason='not ok: new item already exists')
 
     await rename(oldin, newin)
 
     return json_response('ok')
 
 
-def run_app():
+def shutdown_app(request):
+    request.app['shutdown'].set()
+    request.app['sleepmgr'].cancel_sleep()
+    return json_response('ok')
+
+
+async def prune_locks(app):
+    locks_cache = app['locks_cache']
+    while True:
+        for k, v in locks_cache.items():
+            if v.expired():
+                v.release()
+                del locks_cache[k]
+        await asyncio.sleep(300)
+
+
+async def start_background_tasks(app):
+    app['prune_locks'] = asyncio.create_task(prune_locks(app))
+
+
+async def cleanup_background_tasks(app):
+    app['prune_locks'].cancel()
+
+
+async def cleanup_caches(app):
+    dirs_cache = app['dirs_cache']
+    loggers_cache = app['loggers_cache']
+    locks_cache = app['locks_cache']
+
+    dirs_cache.clear()
+
+    for _k, v in loggers_cache.items():
+        v.flush()
+        v.close()
+    loggers_cache.clear()
+
+    for _k, v in locks_cache.items():
+        v.release()
+    locks_cache.clear()
+
+
+async def run_app():
     app = web.Application(client_max_size=1024**2 * 100)
     app.router.add_get('/json', fetch_json)
     app.router.add_get('/file_contents', fetch_contents)
     app.router.add_get('/file_contents_b', fetch_contents_b)
     app.router.add_get('/file/exists', file_exists)
-    app.router.add_get('/dir', fileslist)
+    app.router.add_get('/dir', list_dir)
     app.router.add_get('/dir/exists', dir_exists)
+    app.router.add_get('/dir/lock', query_lock)
     app.router.add_post('/dir', mk_dir)
     app.router.add_delete('/dir', rm_dir)
+    app.router.add_delete('/dir/lock', release_lock)
     app.router.add_patch('/dir', lambda request: rename_item('dir', request))
     app.router.add_post('/file/utime', update_time)
-    app.router.add_post('/dir/lock', lock_dir)
+    app.router.add_post('/dir/lock', aquire_lock)
+    app.router.add_patch('/dir/lock', refresh_lock)
     app.router.add_post('/json', update_json)
     app.router.add_post('/json_gz', update_json_gz)
     app.router.add_post('/file', write_file)
     app.router.add_post('/replace', replace)
-    app.router.add_post('/logger/create', logger_cache.create)
-    app.router.add_post('/logger/append', logger_cache.handle)
-    app.router.add_post('/logger/remove', logger_cache.remove)
-    app.router.add_get('/logger/exists', logger_cache.exists)
-    web.run_app(app, host='0.0.0.0', port=os.environ.get('LISTEN_PORT', 3002))
+    app.router.add_post('/logger/create', create_logger)
+    app.router.add_post('/logger/append', handle_logger)
+    app.router.add_post('/logger/remove', remove_logger)
+    app.router.add_get('/logger/exists', query_logger)
+    app.router.add_post('/shutdown', shutdown_app)
+
+    app['dirs_cache'] = dict()
+    app['loggers_cache'] = dict()
+    app['locks_cache'] = dict()
+    app['dirs_cache'][tuple()] = Path.cwd()
+    app['shutdown'] = Event()
+    app['sleepmgr'] = SleepMgr()
+
+    app.on_startup.append(start_background_tasks)
+    app.on_cleanup.append(cleanup_background_tasks)
+    app.on_cleanup.append(cleanup_caches)
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', 3002)
+    await site.start()
+
+    names = sorted(str(s.name) for s in runner.sites)
+    print(
+        "======== Running on {} ========\n"
+        "(Press CTRL+C to quit)".format(", ".join(names))
+    )
+
+    while not app['shutdown'].is_set():
+        await app['sleepmgr'].sleep()
+
+    print('Shutting down')
+
+    await runner.cleanup()
 
 
 if __name__ == '__main__':
-    run_app()
+    asyncio.run(run_app())
