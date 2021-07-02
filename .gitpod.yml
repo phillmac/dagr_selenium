@@ -1,6 +1,7 @@
 vscode:
   extensions:
     - ms-python.python
+    - shardulm94.trailing-spaces
 ports:
   port: 3002
   onOpen: ignore
