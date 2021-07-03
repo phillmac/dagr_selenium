@@ -1,26 +1,27 @@
-from os import environ
 import logging
 import os
 from itertools import islice
+from os import environ
 from pathlib import Path
 from pprint import pformat, pprint
 from time import sleep, time
 
+from dagr_revamped.builtin_plugins.classes.DAGRHTTPIo import DAGRHTTPIo
 from dagr_revamped.dagr_logging import log
 from dagr_revamped.DAGRCache import DAGRCache
-from dagr_revamped.builtin_plugins.classes.DAGRHTTPIo import DAGRHTTPIo
 from dagr_revamped.DAGRManager import DAGRManager
 from dagr_revamped.exceptions import DagrCacheLockException
 from dagr_revamped.lib import DagrException
 from dagr_revamped.TCPKeepAliveSession import TCPKeepAliveSession
 from dagr_revamped.utils import (
-    artist_from_url, get_html_name, get_remote_io, load_json, save_json)
-from selenium.common.exceptions import (NoSuchElementException,
+    artist_from_url, get_html_name, get_remote_io, http_post_raw, load_json,
+    save_json)
+from selenium.common.exceptions import (InvalidSessionIdException,
+                                        NoSuchElementException,
                                         StaleElementReferenceException)
 from selenium.common.exceptions import \
     TimeoutException as SeleniumTimeoutException
 from urllib3.util.retry import Retry
-from dagr_revamped.utils import http_post_raw
 
 click_sleep_time = 0.300
 monitor_sleep = 600
@@ -163,6 +164,8 @@ def crawl_watchlist():
             watch_urls.add(page_url)
             sleep(click_sleep_time)
             cache.update(cache_slug, watch_urls)
+        except InvalidSessionIdException:
+            raise
         except:
             logger.exception('Error while crawling watchlist')
     delta = len(watch_urls) - start_count
@@ -343,7 +346,7 @@ def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_
         with DAGRCache.with_queue_only(config, mode, deviant, mval, dagr_io=DAGRHTTPIo) as cache:
 
             if dump_html:
-                callback = lambda page, content: dump_callback(
+                def callback(page, content): return dump_callback(
                     page, content, cache.cache_io, load_more=kwargs.get('load_more'))
                 if not cache.cache_io.dir_exists('.html'):
                     logger.info('Creating .html dir')
@@ -529,6 +532,8 @@ def monitor_watchlist_action():
             queue_galleries(deviants, priority=50)
         else:
             logger.info('Watchlist crawl found no new pages')
+    except InvalidSessionIdException:
+        raise
     except:
         logger.exception('Error while crawling watch list')
     return pages
@@ -559,9 +564,13 @@ def check_stop_file(fname=None):
 
 
 def monitor_watchlist():
-    while not check_stop_file('STOP_MON_WATCHLIST'):
+    session_ok = True
+    while session_ok and not check_stop_file('STOP_MON_WATCHLIST'):
         crawlst = time()
-        monitor_watchlist_action()
+        try:
+            monitor_watchlist_action()
+        except InvalidSessionIdException:
+            session_ok = False
         delay_needed = monitor_sleep - (time() - crawlst)
         if delay_needed > 0:
             logger.log(
