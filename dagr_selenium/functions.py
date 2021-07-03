@@ -346,7 +346,7 @@ def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_
         with DAGRCache.with_queue_only(config, mode, deviant, mval, dagr_io=DAGRHTTPIo) as cache:
 
             if dump_html:
-                def callback(page, content): return dump_callback(
+                callback = lambda page, content: return dump_callback(
                     page, content, cache.cache_io, load_more=kwargs.get('load_more'))
                 if not cache.cache_io.dir_exists('.html'):
                     logger.info('Creating .html dir')
@@ -437,8 +437,7 @@ def queue_items(mode, deviants, priority=100, full_crawl=False):
         logger.info(
             f"Sending {mode} {deviantschunk} to queue manager")
         try:
-            r = session.post(queueman_enqueue_url, json=items)
-            r.raise_for_status()
+            http_post_raw(session, queueman_enqueue_url, json=items)
         except:
             logger.exception('Error while enquing items')
             try:
