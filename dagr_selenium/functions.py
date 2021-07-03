@@ -109,7 +109,7 @@ def fetch_deviation_link(content_row):
         raise
     except NoSuchElementException:
         for h3 in content_row.find_elements_by_tag_name('h3'):
-            if h3.text.lower() == "this notification is no longer available"
+            if h3.text.lower() == "this notification is no longer available":
                 logger.warning('Notification unavailable')
                 return None
         raise
