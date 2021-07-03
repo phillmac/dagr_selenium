@@ -75,10 +75,10 @@ def fetch_watchlist_item():
             pprint(content_inner_html)
         except:
             logger.exception('Failed to get link')
+            pprint(content_inner_html)
             browser.refresh()
         try:
             tries = 0
-            last = None
             button = None
             browser.move_to_element(content)
             tickbox = find_tickbox_parent(content)
@@ -86,24 +86,28 @@ def fetch_watchlist_item():
             while button is None:
                 button = find_remove_bttn(browser)
                 sleep(0.3)
-            while tries < 4:
+            while True:
                 try:
                     browser.click_element(button)
                     browser.wait_stale(tickbox, delay=10)
-                except SeleniumTimeoutException as ex:
+                except StaleElementReferenceException:
+                    logger.warning(
+                        f"Remove button is stale")
+                    browser.refresh()
+                    break
+                except SeleniumTimeoutException:
                     logger.warning(
                         f"Timeout waiting for remove button click tries:{tries}")
                     tries += 1
-                    last = ex
+                    if tries >= 4:
+                        raise
                 except NoSuchElementException:
                     break
                 else:
-                    last = None
                     break
-            if not last is None:
-                raise last
         except:
             logger.exception('Failed to click remove buttn')
+            pprint(content_inner_html)
             raise
         return link_href
     return None
