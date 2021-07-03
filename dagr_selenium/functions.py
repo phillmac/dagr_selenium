@@ -103,7 +103,7 @@ def fetch_deviation_link(content_row):
     try:
         link = content_row.find_element_by_css_selector(
             'a[data-hook=deviation_link]')
-        link_href = link.get_attribute('href')
+        return link.get_attribute('href')
     except StaleElementReferenceException:
         logger.error('Failed to get link: stale')
         raise
