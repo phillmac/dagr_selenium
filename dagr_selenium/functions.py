@@ -1,3 +1,4 @@
+from os import environ
 import logging
 import os
 from itertools import islice
@@ -32,6 +33,22 @@ config = manager.get_config()
 logger = logging.getLogger(__name__)
 
 log(__name__, level=logging.INFO, msg=f"Output dir: {config.output_dir}")
+
+
+queueman_fetch_url = environ.get('QUEUEMAN_FETCH_URL', None) or config.get(
+    'dagr.plugins.selenium', 'queueman_fetch_url', key_errors=False) or 'http://127.0.0.1:3005/item'
+
+
+queueman_enqueue_url = environ.get('QUEUEMAN_ENQUEUE_URL', None) or config.get(
+    'dagr.plugins.selenium', 'queueman_enqueue_url', key_errors=False) or 'http://127.0.0.1:3005/items'
+
+
+urls_debug = pformat({
+    'queueman_fetch_url':  queueman_fetch_url,
+    'queueman_enqueue_url': queueman_enqueue_url
+})
+
+logger.info(f"Queman Urls: {urls_debug}")
 
 
 def fetch_watchlist_item():
@@ -326,7 +343,7 @@ def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_
         with DAGRCache.with_queue_only(config, mode, deviant, mval, dagr_io=DAGRHTTPIo) as cache:
 
             if dump_html:
-                callback = lambda page, content: dump_callback(
+                def callback(page, content): return dump_callback(
                     page, content, cache.cache_io, load_more=kwargs.get('load_more'))
                 if not cache.cache_io.dir_exists('.html'):
                     logger.info('Creating .html dir')
@@ -381,7 +398,8 @@ def rip_queue(mode, deviant, mval=None):
 
 
 def rip_gallery(deviant, full_crawl=False, disable_resolve=None):
-    rip('gallery', deviant, full_crawl=full_crawl, disable_resolve=disable_resolve)
+    rip('gallery', deviant, full_crawl=full_crawl,
+        disable_resolve=disable_resolve)
 
 
 def rip_favs(deviant, full_crawl=False, disable_resolve=None):
@@ -416,8 +434,7 @@ def queue_items(mode, deviants, priority=100, full_crawl=False):
         logger.info(
             f"Sending {mode} {deviantschunk} to queue manager")
         try:
-            r = session.post(
-                'http://192.168.20.50:3002/items', json=items)
+            r = session.post(queueman_enqueue_url, json=items)
             r.raise_for_status()
         except:
             logger.exception('Error while enquing items')
@@ -445,7 +462,7 @@ def queue_favs(deviants, priority=100, full_crawl=False):
     queue_items('favs', deviants, priority=priority, full_crawl=full_crawl)
 
 
-def flush_errors_to_queue(queueman_url):
+def flush_errors_to_queue():
     cache = manager.get_cache()
     cache_slug = 'error_items'
     errors = cache.query(cache_slug)
@@ -460,7 +477,7 @@ def flush_errors_to_queue(queueman_url):
             pass
         items.append(i)
     try:
-        http_post_raw(session, queueman_url, json=items)
+        http_post_raw(session, queueman_enqueue_url, json=items)
         cache.remove(cache_slug, errors)
     except:
         logger.exception('Error while enqueueing items')
