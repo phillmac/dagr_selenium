@@ -17,7 +17,8 @@ setup(
         'dagr_revamped @ git+https://github.com/phillmac/dagr_revamped@0.2.108.dev1#egg=dagr_revamped',
         'selenium==3.141.0',
         'aiofiles @ git+https://github.com/phillmac/aiofiles@0.13.0dev0',
-        'aiohttp==3.7.4.post0'
+        'aiohttp==3.7.4.post0',
+        'portalocker==2.3.0'
     ],
     extras_require={
         'calmjs':  ['calmjs==3.3.1'],
