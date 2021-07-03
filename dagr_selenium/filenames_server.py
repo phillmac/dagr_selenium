@@ -155,9 +155,12 @@ async def list_dir(request):
 
     try:
         subdir = get_subdir(request.app, path_param)
-        print('param:', path_param, 'subdir:', subdir)
-        return json_response([f.name async for f in await scandir(subdir)
+        t_now = time_ns()
+        resp =  json_response([f.name async for f in await scandir(subdir)
                               if include_dirs or f.is_file()])
+        t_spent = (time_ns() - t_now) / 1e6
+        print('GET /dir', 'param:', path_param, 'subdir:', subdir, 'time:', '{:.2f}'.format(t_spent)+'ms')
+        return resp
     except StopIteration:
         raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
