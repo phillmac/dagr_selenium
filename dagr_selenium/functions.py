@@ -51,64 +51,88 @@ urls_debug = pformat({
 
 logger.info(f"Queman Urls: {urls_debug}")
 
-
-def fetch_watchlist_item():
-    link_href = None
-    content = None
+def fetch_content_row():
     browser = manager.get_browser()
     try:
-        content = browser.find_element_by_css_selector(
+        return browser.find_element_by_css_selector(
             'div[data-hook=content_row-1]').find_element_by_tag_name('div')
     except NoSuchElementException:
         return None
     except:
         logger.exception('Unable to fetch content')
         browser.refresh()
-    if content:
-        content_inner_html = content.get_attribute('innerHTML')
+    return
+
+def remove_watchlist_item(content_row):
+    browser = manager.get_browser()
+    tries = 0
+    button = None
+    browser.move_to_element(content_row)
+    try:
+        tickbox = find_tickbox_parent(content_row)
+    except NoSuchElementException:
+        logger.warning('Unable to find tickbox')
+        raise
+    browser.click_element(tickbox)
+    while button is None:
         try:
-            link = content.find_element_by_css_selector(
-                'a[data-hook=deviation_link]')
-            link_href = link.get_attribute('href')
+            button = find_remove_bttn(browser)
+        except NoSuchElementException:
+            logger.warning('Unable to find remove button')
+            raise
+        sleep(0.3)
+    while True:
+        try:
+            browser.click_element(button)
+            browser.wait_stale(tickbox, delay=10)
         except StaleElementReferenceException:
-            logger.error('Failed to get link: stale')
-            pprint(content_inner_html)
-        except:
-            logger.exception('Failed to get link')
-            pprint(content_inner_html)
+            logger.warning(
+                f"Remove button is stale")
             browser.refresh()
+            break
+        except SeleniumTimeoutException:
+            logger.warning(
+                f"Timeout waiting for remove button click tries:{tries}")
+            tries += 1
+            if tries >= 4:
+                raise
+        else:
+            break
+
+def fetch_deviation_link(content_row):
+    try:
+        link = content_row.find_element_by_css_selector(
+            'a[data-hook=deviation_link]')
+        link_href = link.get_attribute('href')
+    except StaleElementReferenceException:
+        logger.error('Failed to get link: stale')
+        raise
+    except NoSuchElementException:
+        for h3 in content_row.find_elements_by_tag_name('h3'):
+            if h3.text.lower() == "this notification is no longer available"
+                logger.warning('Notification unavailable')
+                return None
+        raise
+    except:
+        logger.exception('Failed to get link')
+        browser.refresh()
+        raise
+
+
+def fetch_watchlist_item():
+    content_row = fetch_content_row()
+    if content_row:
+        content_inner_html = content_row.get_attribute('innerHTML')
         try:
-            tries = 0
-            button = None
-            browser.move_to_element(content)
-            tickbox = find_tickbox_parent(content)
-            browser.click_element(tickbox)
-            while button is None:
-                button = find_remove_bttn(browser)
-                sleep(0.3)
-            while True:
-                try:
-                    browser.click_element(button)
-                    browser.wait_stale(tickbox, delay=10)
-                except StaleElementReferenceException:
-                    logger.warning(
-                        f"Remove button is stale")
-                    browser.refresh()
-                    break
-                except SeleniumTimeoutException:
-                    logger.warning(
-                        f"Timeout waiting for remove button click tries:{tries}")
-                    tries += 1
-                    if tries >= 4:
-                        raise
-                except NoSuchElementException:
-                    break
-                else:
-                    break
+            link_href = fetch_deviation_link(content_row)
+        except:
+            pprint(content_inner_html)
+        try:
+            remove_watchlist_item(content_row)
         except:
             logger.exception('Failed to click remove buttn')
             pprint(content_inner_html)
-            raise
+            manager.get_browser().refresh()
         return link_href
     return None
 
