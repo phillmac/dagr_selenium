@@ -65,13 +65,14 @@ def fetch_watchlist_item():
         logger.exception('Unable to fetch content')
         browser.refresh()
     if content:
+        content_inner_html = content.get_attribute('innerHTML')
         try:
             link = content.find_element_by_css_selector(
                 'a[data-hook=deviation_link]')
             link_href = link.get_attribute('href')
         except StaleElementReferenceException:
             logger.error('Failed to get link: stale')
-            pprint(content.get_attribute('innerHTML'))
+            pprint(content_inner_html)
         except:
             logger.exception('Failed to get link')
             browser.refresh()
