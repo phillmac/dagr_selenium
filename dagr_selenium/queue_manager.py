@@ -169,6 +169,7 @@ async def add_items(request):
             item['resolved'] = True
         else:
             logger.info('Deviant already resolved')
+
         await add_to_queue(**item)
         await asyncio.sleep(7)
     bg_task = BackgroundTask()
