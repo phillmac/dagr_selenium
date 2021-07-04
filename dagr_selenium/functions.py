@@ -321,9 +321,7 @@ def crawl_trash(full_crawl=False):
 
 def rip_trash(full_crawl=False, resort=False):
     trash = crawl_trash(full_crawl=full_crawl)
-    deviants = sort_pages(trash, resort=resort, flush=False)
-    update_bulk_galleries(deviants)
-    queue_galleries(deviants)
+    sort_queue_galleries(trash, resort=resort, flush=False)
 
 
 def rip_pages(cache, pages, full_crawl=False, disable_filter=False, callback=None, **kwargs):
@@ -552,25 +550,11 @@ def rip_galleries_bulk(full_crawl=False):
 
 def monitor_watchlist_action():
     pages = set()
-    cache = manager.get_cache()
 
     try:
         pages, npcount = crawl_watchlist()
         if npcount > 0:
-            deviants_resolved = []
-            deviants = sort_pages(pages)
-            df_filter = [d.lower() for d in cache.query('deviants_filter')]
-            for d in deviants:
-                if not d.lower() in df_filter:
-                    logger.info(f"Resolving deviant {d}")
-                    try:
-                        deviants_resolved.append(resolve_deviant(d))
-                    except DagrException:
-                        cache.update('deviants_filter', [d])
-                sleep(7)
-            logger.info(pformat(deviants_resolved))
-            update_bulk_galleries(deviants_resolved)
-            queue_galleries(deviants_resolved, priority=50, resolved=True)
+            sort_queue_galleries(pages)
         else:
             logger.info('Watchlist crawl found no new pages')
     except InvalidSessionIdException:
@@ -578,6 +562,24 @@ def monitor_watchlist_action():
     except:
         logger.exception('Error while crawling watch list')
     return pages
+
+
+def sort_queue_galleries(pages, resort=False, flush=True):
+    cache = manager.get_cache()
+    deviants_resolved = []
+    deviants = sort_pages(pages, resort=resort, flush=flush)
+    df_filter = [d.lower() for d in cache.query('deviants_filter')]
+    for d in deviants:
+        if not d.lower() in df_filter:
+            logger.info(f"Resolving deviant {d}")
+            try:
+                deviants_resolved.append(resolve_deviant(d))
+            except DagrException:
+                cache.update('deviants_filter', [d])
+        sleep(7)
+    logger.info(pformat(deviants_resolved))
+    update_bulk_galleries(deviants_resolved)
+    queue_galleries(deviants_resolved, priority=50, resolved=True)
 
 
 def check_stop_file(fname=None):
