@@ -169,7 +169,7 @@ async def add_items(request):
             item['deviant'] = await resolve_deviant(item['deviant'])
             item['resolved'] = True
         await add_to_queue(**item)
-        sleep(7)
+        await asyncio.sleep(7)
     bg_task = BackgroundTask()
     await bg_task.run(flush_queue_cache, ())
     logger.info('Finished add_items request')
