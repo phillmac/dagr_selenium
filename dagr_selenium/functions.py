@@ -551,6 +551,8 @@ def rip_galleries_bulk(full_crawl=False):
 
 def monitor_watchlist_action():
     pages = set()
+    cache = manager.get_cache()
+
     try:
         pages, npcount = crawl_watchlist()
         if npcount > 0:
