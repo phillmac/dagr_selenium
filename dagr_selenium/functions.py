@@ -100,6 +100,7 @@ def remove_watchlist_item(content_row):
             break
 
 def fetch_deviation_link(content_row):
+    browser = manager.get_browser()
     try:
         link = content_row.find_element_by_css_selector(
             'a[data-hook=deviation_link]')
