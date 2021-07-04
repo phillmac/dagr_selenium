@@ -5,7 +5,6 @@ from os import environ
 from pathlib import Path, PurePosixPath
 from pprint import pformat
 from threading import Lock
-from time import sleep
 
 from aiohttp import web
 from aiohttp.web_response import json_response
