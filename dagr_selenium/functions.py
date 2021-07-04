@@ -562,6 +562,7 @@ def monitor_watchlist_action():
             df_filter = [d.lower() for d in cache.query('deviants_filter')]
             for d in deviants:
                 if not d.lower() in df_filter:
+                    logger.info(f"Resolving deviant {d}")
                     try:
                         deviants_resolved.append(resolve_deviant(d))
                     except DagrException:
