@@ -554,10 +554,19 @@ def monitor_watchlist_action():
     try:
         pages, npcount = crawl_watchlist()
         if npcount > 0:
+            deviants_resolved = []
             deviants = sort_pages(pages)
-            logger.info(pformat(deviants))
-            update_bulk_galleries(deviants)
-            queue_galleries(deviants, priority=50)
+            df_filter = [d.lower() for d in cache.query('deviants_filter')]
+            for d in deviants:
+                if not d.lower() in df_filter:
+                    try:
+                        deviants_resolved.append(resolve_deviant(d))
+                    except DagrException:
+                        logger.warning(f"Unable to resolve deviant {d}")
+                        cache.update('deviants_filter', [d])
+            logger.info(pformat(deviants_resolved))
+            update_bulk_galleries(deviants_resolved)
+            queue_galleries(deviants_resolved, priority=50)
         else:
             logger.info('Watchlist crawl found no new pages')
     except InvalidSessionIdException:
