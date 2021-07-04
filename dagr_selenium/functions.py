@@ -453,7 +453,7 @@ def chunk(it, size):
     return iter(lambda: tuple(islice(it, size)), ())
 
 
-def queue_items(mode, deviants, priority=100, full_crawl=False):
+def queue_items(mode, deviants, priority=100, full_crawl=False, resolved=None):
     cache = manager.get_cache()
     cache_slug = f"pending_{mode}"
     if not isinstance(deviants, set):
@@ -463,7 +463,7 @@ def queue_items(mode, deviants, priority=100, full_crawl=False):
     cache.flush('deviants_filter')
     for deviantschunk in chunk(deviants, 5):
         items = [{'mode': mode, 'deviant': d, 'priority': priority,
-                  'full_crawl': full_crawl} for d in deviantschunk if not d.lower() in (df.lower() for df in deviants_filter)]
+                  'full_crawl': full_crawl, 'resolved':resolved} for d in deviantschunk if not d.lower() in (df.lower() for df in deviants_filter)]
         logger.info(
             f"Sending {mode} {deviantschunk} to queue manager")
         try:
@@ -486,8 +486,8 @@ def queue_items(mode, deviants, priority=100, full_crawl=False):
     sleep(180)
 
 
-def queue_galleries(deviants, priority=100, full_crawl=False):
-    queue_items('gallery', deviants, priority=priority, full_crawl=full_crawl)
+def queue_galleries(deviants, priority=100, full_crawl=False, resolved=None):
+    queue_items('gallery', deviants, priority=priority, full_crawl=full_crawl, resolved=resolved)
 
 
 def queue_favs(deviants, priority=100, full_crawl=False):
@@ -566,9 +566,10 @@ def monitor_watchlist_action():
                         deviants_resolved.append(resolve_deviant(d))
                     except DagrException:
                         cache.update('deviants_filter', [d])
+                sleep(7)
             logger.info(pformat(deviants_resolved))
             update_bulk_galleries(deviants_resolved)
-            queue_galleries(deviants_resolved, priority=50)
+            queue_galleries(deviants_resolved, priority=50, resolved=True)
         else:
             logger.info('Watchlist crawl found no new pages')
     except InvalidSessionIdException:
