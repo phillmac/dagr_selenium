@@ -241,7 +241,7 @@ def sort_pages(to_sort, resort=False, queued_only=True, flush=True, disable_reso
                 try:
                     deviant = resolve_deviant(deviant)
                 except DagrException:
-                    logger.warning(f"Unable to resolve deviant {deviant}")
+                    pass
             addst = time()
             with DAGRCache.with_queue_only(config, 'gallery', deviant) as cache:
                 base_dir_exists = cache.cache_io.dir_exists()
@@ -368,7 +368,7 @@ def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_
         try:
             deviant = resolve_deviant(deviant)
         except DagrException:
-            logger.warning(f"Unable to resolve deviant {deviant}")
+            pass
 
     try:
         pages = crawl_pages(mode, deviant, mval=mval,
@@ -565,7 +565,6 @@ def monitor_watchlist_action():
                     try:
                         deviants_resolved.append(resolve_deviant(d))
                     except DagrException:
-                        logger.warning(f"Unable to resolve deviant {d}")
                         cache.update('deviants_filter', [d])
             logger.info(pformat(deviants_resolved))
             update_bulk_galleries(deviants_resolved)
