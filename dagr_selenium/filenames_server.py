@@ -104,7 +104,7 @@ async def create_logger(request):
     handler = RotatingFileHandler(
         filename=fn, maxBytes=maxBytes, backupCount=backupCount)
     handler.setFormatter(logging.Formatter(frmt))
-    loggers_cache.add_handler(hostMode, handler)
+    loggers_cache[hostMode] = handler
     return json_response('ok')
 
 
