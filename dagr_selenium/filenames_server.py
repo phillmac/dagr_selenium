@@ -108,7 +108,7 @@ async def create_logger(request):
     return json_response('ok')
 
 
-async def handle_logger(self, request):
+async def handle_logger(request):
     params = await request.json()
     loggers_cache = request.app['loggers_cache']
     hostMode = params['hostMode']
@@ -121,7 +121,7 @@ async def handle_logger(self, request):
     return json_response('ok')
 
 
-async def remove_logger(self, request):
+async def remove_logger(request):
     params = await request.json()
     loggers_cache = request.app['loggers_cache']
 
@@ -137,7 +137,7 @@ async def remove_logger(self, request):
     return json_response('ok')
 
 
-async def query_logger(self, request):
+async def query_logger(request):
     params = await request.json()
     hostMode = params['hostMode']
     return json_response({'exists': hostMode in request.app['loggers_cache']})
