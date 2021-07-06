@@ -97,7 +97,7 @@ async def create_logger(request):
 
     loggers_cache = request.app['loggers_cache']
 
-    if loggers_cache.exists(hostMode):
+    if hostMode in loggers_cache:
         raise JSONHTTPBadRequest(reason='Logger already open')
 
     fn = f"{hostMode}.dagr.log.txt"
