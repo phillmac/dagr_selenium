@@ -474,6 +474,8 @@ async def update_time(request):
 
 
 async def write_file(request):
+    t_now = time_ns()
+
     with TemporaryFile(dir='/dev/shm') as tmp:
 
         reader = await request.multipart()
@@ -501,13 +503,14 @@ async def write_file(request):
         path_param = params.get('path', None)
         filename = params.get('filename', None)
 
-        print({'path': path_param, 'filename': filename,
-              'size': params['size']})
-
         if path_param is None:
+            print({'path': path_param, 'filename': filename,
+              'size': params['size']})
             raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
         if filename is None:
+            print({'path': path_param, 'filename': filename,
+              'size': params['size']})
             raise JSONHTTPBadRequest(reason='not ok: filename param missing')
 
         subdir = None
@@ -519,6 +522,10 @@ async def write_file(request):
 
         with subdir.joinpath(PurePosixPath(filename).name).open('wb') as dest:
             copyfileobj(tmp, dest)
+
+        t_spent = (time_ns() - t_now) / 1e6
+        print('POST /file', 'path', path_param, 'filename',filename,
+              'size', params['size'] 'time:', '{:.2f}'.format(t_spent)+'ms')
 
         return json_response('ok')
 
