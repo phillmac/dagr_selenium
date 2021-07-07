@@ -162,10 +162,11 @@ async def list_dir(request):
     try:
         subdir = await get_subdir(request.app, path_param)
         t_now = time_ns()
-        resp =  json_response([f.name async for f in await scandir(subdir)
+        resp = json_response([f.name async for f in await scandir(subdir)
                               if include_dirs or f.is_file()])
         t_spent = (time_ns() - t_now) / 1e6
-        print('GET /dir', 'param:', path_param, 'subdir:', subdir, 'time:', '{:.2f}'.format(t_spent)+'ms')
+        print('GET /dir', 'param:', path_param, 'subdir:',
+              subdir, 'time:', '{:.2f}'.format(t_spent)+'ms')
         return resp
     except StopAsyncIteration:
         raise JSONHTTPBadRequest(reason='not ok: path does not exist')
@@ -599,7 +600,7 @@ async def rm_dir(request):
 
     try:
         subdir = await get_subdir(request.app,
-                            PurePosixPath(path_param).joinpath(PurePosixPath(dir_name).name))
+                                  PurePosixPath(path_param).joinpath(PurePosixPath(dir_name).name))
     except StopAsyncIteration:
         raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
@@ -858,6 +859,8 @@ async def run_app():
     app.router.add_get('/dir', list_dir)
     app.router.add_get('/dir/exists', dir_exists)
     app.router.add_get('/dir/lock', query_lock)
+    app.router.add_get(
+        '/locks', lambda request: json_response(request.app['locks_cache'].keys()))
     app.router.add_post('/dir', mk_dir)
     app.router.add_delete('/dir', rm_dir)
     app.router.add_delete('/dir/lock', release_lock)
