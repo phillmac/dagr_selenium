@@ -161,7 +161,7 @@ async def list_dir(request):
         t_spent = (time_ns() - t_now) / 1e6
         print('GET /dir', 'param:', path_param, 'subdir:', subdir, 'time:', '{:.2f}'.format(t_spent)+'ms')
         return resp
-    except StopIteration:
+    except StopAsyncIteration:
         raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
 
@@ -181,7 +181,7 @@ async def file_exists(request):
 
     try:
         subdir = await get_subdir(request.app, path_param)
-    except StopIteration:
+    except StopAsyncIteration:
         print('Subdir does not exist')
         return json_response({'exists': False})
     t_now = time_ns()
@@ -211,7 +211,7 @@ async def dir_exists(request):
 
     try:
         subdir = await get_subdir(request.app, path_param)
-    except StopIteration:
+    except StopAsyncIteration:
         print('Subdir does not exist')
         return json_response({'exists': False})
 
@@ -276,7 +276,7 @@ async def fetch_contents(request):
 
     try:
         subdir = await get_subdir(request.app, path_param)
-    except StopIteration:
+    except StopAsyncIteration:
         raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
     dest = subdir.joinpath(PurePosixPath(filename).name)
@@ -306,7 +306,7 @@ async def fetch_contents_b(request):
 
     try:
         subdir = await get_subdir(request.app, path_param)
-    except StopIteration:
+    except StopAsyncIteration:
         raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
     dest = subdir.joinpath(PurePosixPath(filename).name)
@@ -345,7 +345,7 @@ async def update_json(request):
 
     try:
         subdir = await get_subdir(request.app, path_param)
-    except StopIteration:
+    except StopAsyncIteration:
         raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
     dest = subdir.joinpath(PurePosixPath(filename).name)
@@ -387,7 +387,7 @@ async def update_json_gz(request):
 
     try:
         subdir = await get_subdir(request.app, path_param)
-    except StopIteration:
+    except StopAsyncIteration:
         raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
     dest = subdir.joinpath(PurePosixPath(filename).name)
@@ -412,7 +412,7 @@ async def mk_dir(request):
 
     try:
         subdir = await get_subdir(request.app, path_param)
-    except StopIteration:
+    except StopAsyncIteration:
         if dir_name is None:
             dir_item = PosixPath(path_param)
             if not str(PosixPath.cwd()) == os_path.commonpath((Path.cwd(), await abspath(dir_item))):
@@ -456,7 +456,7 @@ async def update_time(request):
 
     try:
         subdir = await get_subdir(request.app, path_param)
-    except StopIteration:
+    except StopAsyncIteration:
         raise JSONHTTPBadRequest(reason='not ok: path does not exist')
     try:
         mod_time = mktime(parsedate(mtime))
@@ -507,7 +507,7 @@ async def write_file(request):
 
         try:
             subdir = await get_subdir(request.app, path_param)
-        except StopIteration:
+        except StopAsyncIteration:
             raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
         with subdir.joinpath(PurePosixPath(filename).name).open('wb') as dest:
@@ -534,7 +534,7 @@ async def fetch_json(request):
 
     try:
         subdir = await get_subdir(request.app, path_param)
-    except StopIteration:
+    except StopAsyncIteration:
         raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
     dest = subdir.joinpath(PurePosixPath(filename).name)
@@ -594,7 +594,7 @@ async def rm_dir(request):
     try:
         subdir = await get_subdir(request.app,
                             PurePosixPath(path_param).joinpath(PurePosixPath(dir_name).name))
-    except StopIteration:
+    except StopAsyncIteration:
         raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
     if await exists(subdir):
@@ -618,7 +618,7 @@ async def query_lock(request):
 
     try:
         subdir = await get_subdir(request.app, path_param)
-    except StopIteration:
+    except StopAsyncIteration:
         raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
     if await exists(subdir):
@@ -641,7 +641,7 @@ async def aquire_lock(request):
 
     try:
         subdir = await get_subdir(request.app, path_param)
-    except StopIteration:
+    except StopAsyncIteration:
         raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
     if await exists(subdir):
@@ -667,7 +667,7 @@ async def release_lock(request):
 
     try:
         subdir = await get_subdir(request.app, path_param)
-    except StopIteration:
+    except StopAsyncIteration:
         raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
     if await exists(subdir):
@@ -695,7 +695,7 @@ async def refresh_lock(request):
 
     try:
         subdir = await get_subdir(request.app, path_param)
-    except StopIteration:
+    except StopAsyncIteration:
         raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
     if await exists(subdir):
@@ -730,7 +730,7 @@ async def replace_item(request):
 
     try:
         subdir = await get_subdir(request.app, path_param)
-    except StopIteration:
+    except StopAsyncIteration:
         raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
     oldfn = subdir.joinpath(PurePosixPath(filename).name)
@@ -769,7 +769,7 @@ async def rename_item(item_type, request):
 
     try:
         subdir = await get_subdir(request.app, path_param)
-    except StopIteration:
+    except StopAsyncIteration:
         raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
     newin = subdir.joinpath(new_itemname)
@@ -781,7 +781,7 @@ async def rename_item(item_type, request):
         try:
             oldin = get_subdir(request.app,
                                Path(path_param).joinpath(itemname))
-        except StopIteration:
+        except StopAsyncIteration:
             raise JSONHTTPBadRequest(reason='not ok: item does not exist')
 
     else:
