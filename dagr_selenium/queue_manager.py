@@ -246,5 +246,7 @@ class BackgroundTask:
 
 if __name__ == '__main__':
     with manager.get_dagr():
-        manager.get_browser().do_login()
+        login_policy = config.get('dagr.plugins.selenium', 'login_policy')
+        if login_policy == 'enabled' or login_policy == 'force':
+            manager.get_browser().do_login()
         run_app()
