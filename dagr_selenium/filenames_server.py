@@ -630,7 +630,7 @@ async def query_lock(request):
     if await exists(subdir):
         return json_response({'locked': not request.app['locks_cache'].get(subdir, None) is None})
 
-    raise JSONHTTPBadRequest(reason='not ok: filename does not exist')
+    raise JSONHTTPBadRequest(reason='not ok: subdir does not exist')
 
 
 async def aquire_lock(request):
