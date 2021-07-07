@@ -525,7 +525,7 @@ async def write_file(request):
 
         t_spent = (time_ns() - t_now) / 1e6
         print('POST /file', 'path', path_param, 'filename',filename,
-              'size', params['size'] 'time:', '{:.2f}'.format(t_spent)+'ms')
+              'size', params['size'], 'time:', '{:.2f}'.format(t_spent)+'ms')
 
         return json_response('ok')
 
