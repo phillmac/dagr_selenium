@@ -36,6 +36,8 @@ class LockEntry():
             self.__lockfile, fail_when_locked=True, flags=portalocker.LOCK_EX)
         self.__expiry = time() + 300
 
+        logger.info('Lockfile exists:', self.__lockfile.exists())
+
     def expired(self):
         return time() > self.__expiry
 
@@ -44,7 +46,11 @@ class LockEntry():
 
     def release(self):
         self.__lock.release()
-        self.__lockfile.unlink()
+
+        if self.__lockfile.exists():
+            self.__lockfile.unlink()
+        else:
+            logger.info('Lockfile aready removed')
 
 
 class SleepMgr():
