@@ -68,7 +68,7 @@ async def add_to_queue(mode, deviant=None, mval=None, priority=100, full_crawl=F
     params = item.params
     logger.info(f"Adding {params} to queue")
     await queue.put(item)
-    asyncio.create_task(update_queue_cache(queue_slug, params))
+    asyncio.create_task(update_queue_cache(params))
     logger.info('Finished adding item')
 
 
@@ -136,7 +136,7 @@ async def add_url(request):
         return JSONHTTPBadRequest(reason='not ok: unable to handle url')
 
 
-async def update_queue_cache(queue_slug, params):
+async def update_queue_cache(params):
     with queue_lock:
         try:
             cache.update(queue_slug, params)
