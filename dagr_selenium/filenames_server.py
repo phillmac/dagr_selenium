@@ -73,6 +73,14 @@ load_dotenv()
 mimetypes.init()
 
 
+def sizeof_fmt(num, suffix='B'):
+    for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
+        if abs(num) < 1024.0:
+            return "%3.2f%s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.1f%s%s" % (num, 'Yi', suffix)
+
+
 async def get_subdir(app, dirpath):
     if isinstance(dirpath, str):
         dirpath = PurePosixPath(dirpath)
@@ -505,12 +513,12 @@ async def write_file(request):
 
         if path_param is None:
             print({'path': path_param, 'filename': filename,
-              'size': params['size']})
+                   'size': params['size']})
             raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
         if filename is None:
             print({'path': path_param, 'filename': filename,
-              'size': params['size']})
+                   'size': params['size']})
             raise JSONHTTPBadRequest(reason='not ok: filename param missing')
 
         subdir = None
@@ -524,8 +532,8 @@ async def write_file(request):
             copyfileobj(tmp, dest)
 
         t_spent = (time_ns() - t_now) / 1e6
-        print('POST /file', 'path', path_param, 'filename',filename,
-              'size', params['size'], 'time:', '{:.2f}'.format(t_spent)+'ms')
+        print('POST /file', 'path', path_param, 'filename', filename, 'size',
+              sizeof_fmt(params['size']), 'time:', '{:.2f}'.format(t_spent)+'ms')
 
         return json_response('ok')
 
