@@ -5,7 +5,8 @@ from os import environ
 from pprint import pformat
 from time import sleep
 
-from selenium.common.exceptions import InvalidSessionIdException
+from selenium.common.exceptions import (InvalidSessionIdException,
+                                        WebDriverException)
 
 # from dagr_revamped.DAGRDeviationProcessorFNS import DAGRDeviationProcessorFNS
 from .functions import (check_stop_file, config, flush_errors_to_queue,
@@ -38,7 +39,8 @@ async def process_item(item):
             raise Exception('Detected 400 error(s)')
 
     except Exception as ex:
-        if isinstance(ex, InvalidSessionIdException):
+        if isinstance(ex, InvalidSessionIdException) or isinstance(ex, WebDriverException):
+            logger.info('Caught fatal exception')
             manager.session_bad()
         logger.exception('Error while processing item')
         try:
