@@ -5,10 +5,11 @@ from os import environ
 from pprint import pformat
 from time import sleep
 
+from selenium.common.exceptions import InvalidSessionIdException
+
 # from dagr_revamped.DAGRDeviationProcessorFNS import DAGRDeviationProcessorFNS
 from .functions import (check_stop_file, config, flush_errors_to_queue,
-                        manager, queueman_fetch_url,
-                        session)
+                        manager, queueman_fetch_url, session)
 from .QueueItem import QueueItem
 
 env_level = environ.get('dagr.worker.logging.level', None)
@@ -19,7 +20,6 @@ manager.set_mode('worker')
 manager.init_logging(level_mapped)
 
 logger = logging.getLogger(__name__)
-
 
 async def fetch_item():
     try:
@@ -36,7 +36,10 @@ async def process_item(item):
         http_errors = manager.get_dagr().report_http_errors()
         if http_errors.get(400, 0) > 1:
             raise Exception('Detected 400 error(s)')
-    except:
+
+    except Exception as ex:
+        if isinstance(ex, InvalidSessionIdException):
+            manager.session_bad()
         logger.exception('Error while processing item')
         try:
             manager.get_cache().update('error_items', item.params)
@@ -54,7 +57,7 @@ async def __main__():
         logger.info('Flushing previous errors')
         flush_errors_to_queue()
         logger.info("Worker ready")
-        while not check_stop_file('STOP_WORKER'):
+        while manager.session_ok and not check_stop_file('STOP_WORKER'):
             logger.info("Fetching work item")
             item = await fetch_item()
             if not item is None:
