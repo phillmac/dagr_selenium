@@ -867,7 +867,7 @@ async def run_app():
     app.router.add_get('/dir/exists', dir_exists)
     app.router.add_get('/dir/lock', query_lock)
     app.router.add_get(
-        '/locks', lambda request: json_response(request.app['locks_cache'].keys()))
+        '/locks', lambda request: json_response(list(request.app['locks_cache'])))
     app.router.add_post('/dir', mk_dir)
     app.router.add_delete('/dir', rm_dir)
     app.router.add_delete('/dir/lock', release_lock)
