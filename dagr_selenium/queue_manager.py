@@ -67,9 +67,8 @@ async def add_to_queue(mode, deviant=None, mval=None, priority=100, full_crawl=F
                      verify_exists=verify_exists, verify_best=verify_best, no_crawl=no_crawl, crawl_offset=crawl_offset, load_more=load_more, dump_html=dump_html)
     params = item.params
     logger.info(f"Adding {params} to queue")
-    bg_task = BackgroundTask()
-    await bg_task.run(update_queue_cache, (queue_slug, params))
     await queue.put(item)
+    asyncio.create_task(update_queue_cache(queue_slug, params))
     logger.info('Finished adding item')
 
 
@@ -129,8 +128,7 @@ async def add_url(request):
         mval = detect_mval(mode, url)
         await add_to_queue(
             mode, deviant, mval=mval, priority=priority, full_crawl=full_crawl, resolved=True)
-        bg_task = BackgroundTask()
-        await bg_task.run(flush_queue_cache, ())
+        asyncio.create_task(flush_queue_cache())
         logger.info('Finished add_url request')
         return web.Response(text='ok')
     except NotImplementedError:
@@ -172,8 +170,8 @@ async def add_items(request):
             logger.info('Deviant already resolved')
 
         await add_to_queue(**item)
-    bg_task = BackgroundTask()
-    await bg_task.run(flush_queue_cache, ())
+
+    asyncio.create_task(flush_queue_cache())
     logger.info('Finished add_items request')
     return json_response('ok')
 
@@ -193,8 +191,7 @@ async def get_item(request):
     queue.task_done()
     params = item.params
     logger.info(f"Dequed item {params}")
-    bg_task = BackgroundTask()
-    await bg_task.run(remove_queue_cache_item, [params])
+    asyncio.create_task(remove_queue_cache_item([params]))
     logger.info('Finished get_item request')
     return json_response(params)
 
@@ -225,23 +222,6 @@ def run_app():
     asyncio.get_event_loop().run_until_complete(load_cached_queue())
     web.run_app(app, host='0.0.0.0', port=environ.get(
         'QUEUEMAN_LISTEN_PORT', 3005))
-
-
-class BackgroundTask:
-    async def run(self, coro, args, callback=None):
-        loop = asyncio.get_event_loop()
-        loop.run_in_executor(None, self.task_runner, coro, args, callback)
-
-    def task_runner(self, coro, args, callback):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-        fut = asyncio.ensure_future(coro(*args))
-        if callback is not None:
-            fut.add_done_callback(callback)
-
-        loop.run_until_complete(fut)
-        loop.close()
 
 
 if __name__ == '__main__':
