@@ -24,7 +24,9 @@ from selenium.common.exceptions import \
 from urllib3.util.retry import Retry
 
 click_sleep_time = 0.300
-monitor_sleep = 600
+monitor_sleep = environ.get('MONITOR_SLEEP', 300)
+
+rip_trash_sleep = environ.get('RIP_TRASH_SLEEP', 300)
 
 session = TCPKeepAliveSession()
 
@@ -607,13 +609,12 @@ def check_stop_file(fname=None):
 
 
 def monitor_watchlist():
-    session_ok = True
-    while session_ok and not check_stop_file('STOP_MON_WATCHLIST'):
+    while manager.session_ok and not check_stop_file('STOP_MON_WATCHLIST'):
         crawlst = time()
         try:
             monitor_watchlist_action()
         except InvalidSessionIdException:
-            session_ok = False
+            manager.session_bad()
         delay_needed = monitor_sleep - (time() - crawlst)
         if delay_needed > 0:
             logger.log(
@@ -621,6 +622,25 @@ def monitor_watchlist():
             sleep(delay_needed)
         logger.log(
             level=15, msg=f"Rip watchlist took {'{:.4f}'.format(time() - crawlst)} seconds")
+
+
+def monitor_trash(full_crawl=False, resort=False):
+    while manager.session_ok and not check_stop_file('STOP_MON_TRASH'):
+        crawlst = time()
+        try:
+            with manager.get_dagr():
+                rip_trash(full_crawl=full_crawl, resort=resort)
+        except InvalidSessionIdException:
+            manager.session_bad()
+        delay_needed = rip_trash_sleep - (time() - crawlst)
+        if delay_needed > 0:
+            logger.log(
+                level=15, msg=f"Need to sleep for {'{:.2f}'.format(delay_needed)} seconds")
+            sleep(delay_needed)
+        logger.log(
+            level=15, msg=f"Rip watchlist took {'{:.4f}'.format(time() - crawlst)} seconds")
+
+
 
 
 def update_bookmarks(mode, deviant, mval):
