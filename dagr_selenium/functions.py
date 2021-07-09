@@ -21,6 +21,7 @@ from selenium.common.exceptions import (InvalidSessionIdException,
                                         StaleElementReferenceException)
 from selenium.common.exceptions import \
     TimeoutException as SeleniumTimeoutException
+from selenium.common.exceptions import WebDriverException
 from urllib3.util.retry import Retry
 
 click_sleep_time = 0.300
@@ -630,7 +631,7 @@ def monitor_trash(full_crawl=False, resort=False):
         try:
             with manager.get_dagr():
                 rip_trash(full_crawl=full_crawl, resort=resort)
-        except InvalidSessionIdException:
+        except (InvalidSessionIdException, WebDriverException):
             manager.session_bad()
         delay_needed = rip_trash_sleep - (time() - crawlst)
         if delay_needed > 0:
