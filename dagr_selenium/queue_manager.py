@@ -41,6 +41,7 @@ regex_max_priority = config.get('deviantart.regexes.params', 'maxpriority')
 nd_modes = config.get('deviantart', 'ndmodes').split(',')
 
 queue_slug = 'queue'
+watchlist_slug = 'watch_urls'
 cache = manager.get_cache()
 
 
@@ -196,6 +197,16 @@ async def get_item(request):
     return json_response(params)
 
 
+async def flush_watchlist_cache():
+    cache.flush(watchlist_slug)
+
+
+async def update_watchlist_cache(request):
+    urls = await request.json()
+    cache.update(watchlist_slug, urls)
+    asyncio.create_task(flush_watchlist_cache())
+
+
 async def load_cached_queue():
     loaded = [QueueItem(**dict(i)) for i in cache.query(queue_slug)]
     logger.info(f"Adding {len(loaded)} items to queue")
@@ -219,6 +230,7 @@ def run_app():
         '/bulk', lambda request: json_response(convert_queue(config, load_bulk('.dagr_bulk.json'))))
     app.router.add_post(
         '/bulk/gallery', add_bulk_galleries)
+    app.router.add_post('watchlist/items', update_watchlist_cache)
     asyncio.get_event_loop().run_until_complete(load_cached_queue())
     web.run_app(app, host='0.0.0.0', port=environ.get(
         'QUEUEMAN_LISTEN_PORT', 3005))
