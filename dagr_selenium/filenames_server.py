@@ -27,7 +27,6 @@ from dotenv import load_dotenv
 
 from dagr_selenium.JSONHTTPBadRequest import JSONHTTPBadRequest
 
-
 class LockEntry():
     def __init__(self, diritem):
         self.__diritem = diritem
@@ -206,8 +205,9 @@ async def file_exists(request):
     print('exists', result, 'time:', '{:.2f}'.format(t_spent)+'ms')
     if result:
         if not params.get('update_cache', None) is False:
+            session = request.app['update_session']
             asyncio.create_task(check_update_fn_cache(
-                params, subdir, path_param))
+                params, subdir, path_param, session))
     return json_response({'exists': result})
 
 
@@ -243,11 +243,11 @@ async def check_update_fn_cache(params, subdir, path_param, session=None):
             async with ClientSession(raise_for_status=True) as session:
                 async with session.get(url, json=params) as resp:
                     if not (await resp.json())['exists']:
-                        await update_fn_cache(subdir, path_param)
+                        await update_fn_cache(subdir, path_param, session)
         else:
             async with session.get(url, json=params) as resp:
                 if not (await resp.json())['exists']:
-                    await update_fn_cache(subdir, path_param)
+                    await update_fn_cache(subdir, path_param, session)
     except Exception as ex:
         print('Failed to check/update cache', ex)
 
@@ -899,6 +899,7 @@ async def run_app():
     app['dirs_cache'][tuple()] = Path.cwd()
     app['shutdown'] = Event()
     app['sleepmgr'] = SleepMgr()
+    app['update_session'] = ClientSession(raise_for_status=True)
 
     app.on_startup.append(start_background_tasks)
     app.on_cleanup.append(cleanup_background_tasks)
