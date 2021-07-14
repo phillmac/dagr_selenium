@@ -27,6 +27,7 @@ from dotenv import load_dotenv
 
 from dagr_selenium.JSONHTTPBadRequest import JSONHTTPBadRequest
 
+
 class LockEntry():
     def __init__(self, diritem):
         self.__diritem = diritem
@@ -34,8 +35,18 @@ class LockEntry():
         self.__lock = portalocker.Lock(
             self.__lockfile, fail_when_locked=True, flags=portalocker.LOCK_EX)
         self.__expiry = time() + 300
+        self.__created = time()
 
         print('Lockfile exists:', self.__lockfile.exists())
+
+    @property
+    def details(self):
+        return {
+            'path': str(self.__diritem),
+            'lockfile': str(self.__lockfile),
+            'expiry': self.__expiry,
+            'created': self.__created
+        }
 
     def expired(self):
         return time() > self.__expiry
@@ -631,7 +642,7 @@ async def query_lock(request):
 
     path_param = params.get('path', None)
 
-    print(params)
+    print('query lock', params)
 
     if path_param is None:
         raise JSONHTTPBadRequest(reason='not ok: path param missing')
@@ -644,7 +655,8 @@ async def query_lock(request):
         raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
     if await exists(subdir):
-        return json_response({'locked': not request.app['locks_cache'].get(subdir, None) is None})
+        locked = request.app['locks_cache'].get(str(subdir), None) is not None
+        return json_response({'locked': locked})
 
     raise JSONHTTPBadRequest(reason='not ok: subdir does not exist')
 
@@ -666,13 +678,14 @@ async def aquire_lock(request):
     except StopAsyncIteration:
         raise JSONHTTPBadRequest(reason='not ok: path does not exist')
 
-    if await exists(subdir):
-        locks_cache = request.app['locks_cache']
-        if not locks_cache.get(str(subdir), None) is None:
-            raise JSONHTTPBadRequest(reason='not ok: path is already locked')
-        locks_cache[str(subdir)] = LockEntry(subdir)
-        return json_response('ok')
-    raise JSONHTTPBadRequest(reason='not ok: filename does not exist')
+    if not await exists(subdir):
+        raise JSONHTTPBadRequest(reason='not ok: subdir does not exist')
+    subdir_str = str(subdir)
+    locks_cache = request.app['locks_cache']
+    if locks_cache.get(subdir_str, None) is not None:
+        raise JSONHTTPBadRequest(reason='not ok: path is already locked')
+    locks_cache[subdir_str] = LockEntry(subdir)
+    return json_response('ok')
 
 
 async def release_lock(request):
@@ -875,7 +888,7 @@ async def run_app():
     app.router.add_get('/dir/exists', dir_exists)
     app.router.add_get('/dir/lock', query_lock)
     app.router.add_get(
-        '/locks', lambda request: json_response(list(request.app['locks_cache'])))
+        '/locks', lambda request: json_response({(k, request.app['locks_cache'][k].details) for k in request.app['locks_cache']}))
     app.router.add_post('/dir', mk_dir)
     app.router.add_delete('/dir', rm_dir)
     app.router.add_delete('/dir/lock', release_lock)
