@@ -233,7 +233,7 @@ def run_app():
         '/bulk', lambda request: json_response(convert_queue(config, load_bulk('.dagr_bulk.json'))))
     app.router.add_post(
         '/bulk/gallery', add_bulk_galleries)
-    app.router.add_post('watchlist/items', update_watchlist_cache)
+    app.router.add_post('/watchlist/items', update_watchlist_cache)
     asyncio.get_event_loop().run_until_complete(load_cached_queue())
     web.run_app(app, host='0.0.0.0', port=environ.get(
         'QUEUEMAN_LISTEN_PORT', 3005))
