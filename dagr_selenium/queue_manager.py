@@ -205,6 +205,9 @@ async def update_watchlist_cache(request):
     urls = await request.json()
     cache.update(watchlist_slug, urls)
     asyncio.create_task(flush_watchlist_cache())
+    return json_response('ok', headers = {
+        'Access-Control-Allow-Origin': '*'
+    })
 
 
 async def load_cached_queue():
