@@ -256,7 +256,8 @@ def sort_pages(to_sort, resort=False, queued_only=True, flush=True, disable_reso
                     cache.cache_io.mkdir()
                     logger.log(level=15, msg=f"Created dir {cache.rel_dir}")
                 enqueued = cache.update_queue(pages)
-                if enqueued > 0:
+                cache.prune_queue()
+                if len(cache.get_queue()) > 0 or enqueued > 0:
                     queued_artists.append(deviant)
                     crawler_cache.update(pending_slug, [deviant])
                 progress += 1
