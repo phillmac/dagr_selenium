@@ -579,7 +579,7 @@ def sort_queue_galleries(pages, resort=False, flush=True):
                 deviants_resolved.append(resolve_deviant(d))
             except DagrException:
                 cache.update('deviants_filter', [d])
-        sleep(7)
+        sleep(30)
     logger.info(pformat(deviants_resolved))
     update_bulk_galleries(deviants_resolved)
     queue_galleries(deviants_resolved, priority=50, resolved=True)
