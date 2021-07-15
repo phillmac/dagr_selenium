@@ -846,10 +846,13 @@ async def prune_locks(app):
     locks_cache = app['locks_cache']
     while True:
         for k, v in locks_cache.items():
+            print(f"Checking lock expiry for {k}")
             if v.expired():
                 print(f"Pruning expired lock for {k}")
                 v.release()
                 del locks_cache[k]
+            else:
+                print(f"{k} is current")
         await asyncio.sleep(300)
 
 
