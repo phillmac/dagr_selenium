@@ -14,4 +14,4 @@ manager.set_mode('sort_watchlist')
 manager.init_logging(level_mapped)
 
 with manager.get_dagr():
-    sort_watchlist()
+    sort_watchlist(resort=resort)
