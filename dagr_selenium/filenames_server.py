@@ -64,15 +64,21 @@ class LockEntry():
 
 
 class SleepMgr():
-    def __init__(self):
+    def __init__(self, app):
         self.__sleep = None
+        self.__shutdown = app['shutdown']
 
     async def sleep(self):
         self.__sleep = asyncio.create_task(asyncio.sleep(3600))
         try:
             await self.__sleep
         except asyncio.CancelledError:
-            pass
+            print('CancelledError')
+            if not self.__shutdown.is_set():
+                print('Set shutdown')
+                self.__shutdown.set()
+        except Exception as ex:
+            print(ex)
 
     def cancel_sleep(self):
         if self.__sleep:
@@ -216,7 +222,7 @@ async def file_exists(request):
     print('exists', result, 'time:', '{:.2f}'.format(t_spent)+'ms')
     if result:
         if not params.get('update_cache', None) is False:
-            session = request.app['update_session']
+            session = request.app['sessions']['update']
             asyncio.create_task(check_update_fn_cache(
                 params, subdir, path_param, session))
     return json_response({'exists': result})
@@ -868,6 +874,7 @@ async def cleanup_caches(app):
     dirs_cache = app['dirs_cache']
     loggers_cache = app['loggers_cache']
     locks_cache = app['locks_cache']
+    sessions_cache = app['sessions']
 
     dirs_cache.clear()
 
@@ -880,6 +887,10 @@ async def cleanup_caches(app):
         v.release()
     locks_cache.clear()
 
+    for _k,v in app['sessions'].items():
+        await v.close()
+
+    sessions_cache.clear()
 
 async def run_app():
     app = web.Application(client_max_size=1024**2 * 100)
@@ -914,8 +925,9 @@ async def run_app():
     app['locks_cache'] = dict()
     app['dirs_cache'][tuple()] = Path.cwd()
     app['shutdown'] = Event()
-    app['sleepmgr'] = SleepMgr()
-    app['update_session'] = ClientSession(raise_for_status=True)
+    app['sleepmgr'] = SleepMgr(app)
+    app['sessions'] = dict()
+    app['sessions']['update'] = ClientSession(raise_for_status=True)
 
     app.on_startup.append(start_background_tasks)
     app.on_cleanup.append(cleanup_background_tasks)
@@ -941,4 +953,7 @@ async def run_app():
 
 
 if __name__ == '__main__':
-    asyncio.run(run_app())
+    try:
+        asyncio.run(run_app())
+    except KeyboardInterrupt:
+        print(KeyboardInterrupt)
