@@ -240,11 +240,13 @@ def sort_pages(to_sort, resort=False, queued_only=True, flush=True, disable_reso
     queued_artists = []
     for deviant, pages in artists.items():
         try:
-            if not disable_resolve:
-                try:
+            try:
+                if not disable_resolve:
                     deviant = resolve_deviant(deviant)
-                except DagrException:
-                    pass
+            except DagrException:
+                logger.warning(f"unable to resolve deviant {deviant}")
+                continue
+            sleep(10)
             addst = time()
             with DAGRCache.with_queue_only(config, 'gallery', deviant) as cache:
                 base_dir_exists = cache.cache_io.dir_exists()
@@ -569,20 +571,13 @@ def monitor_watchlist_action():
 
 def sort_queue_galleries(pages, resort=False, flush=True):
     cache = manager.get_cache()
-    deviants_resolved = []
-    deviants = sort_pages(pages, resort=resort, flush=flush)
-    df_filter = [d.lower() for d in cache.query('deviants_filter')]
-    for d in deviants:
-        if not d.lower() in df_filter:
-            logger.info(f"Resolving deviant {d}")
-            try:
-                deviants_resolved.append(resolve_deviant(d))
-            except DagrException:
-                cache.update('deviants_filter', [d])
-        sleep(30)
-    logger.info(pformat(deviants_resolved))
-    update_bulk_galleries(deviants_resolved)
-    queue_galleries(deviants_resolved, priority=50, resolved=True)
+    deviants_filtered = []
+    deviants_sorted = sort_pages(pages, resort=resort, flush=flush)
+    d_filter = [d.lower() for d in cache.query('deviants_filter')]
+    deviants_filtered = [d for d in deviants_sorted if not d.lower() in d_filter]
+    logger.info(pformat(deviants_filtered))
+    update_bulk_galleries(deviants_filtered)
+    queue_galleries(deviants_filtered, priority=50, resolved=True)
 
 
 def check_stop_file(fname=None):
