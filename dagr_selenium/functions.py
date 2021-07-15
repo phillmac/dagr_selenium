@@ -244,7 +244,6 @@ def sort_pages(to_sort, resort=False, queued_only=True, flush=True, disable_reso
                 if not disable_resolve:
                     deviant = resolve_deviant(deviant)
             except DagrException:
-                logger.warning(f"unable to resolve deviant {deviant}")
                 continue
             sleep(10)
             addst = time()
