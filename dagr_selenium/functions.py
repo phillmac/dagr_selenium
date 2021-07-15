@@ -211,7 +211,7 @@ def crawl_watchlist():
 def sort_watchlist():
     cache = manager.get_cache()
     cache_slug = 'watch_urls'
-    sort_pages(cache.query(cache_slug))
+    sort_queue_galleries(cache.query(cache_slug))
 
 
 def sort_pages(to_sort, resort=False, queued_only=True, flush=True, disable_resolve=None):
