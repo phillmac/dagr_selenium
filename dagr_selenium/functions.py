@@ -208,10 +208,10 @@ def crawl_watchlist():
     return watch_urls, delta
 
 
-def sort_watchlist():
+def sort_watchlist(resort=False):
     cache = manager.get_cache()
     cache_slug = 'watch_urls'
-    sort_queue_galleries(cache.query(cache_slug))
+    sort_queue_galleries(cache.query(cache_slug), resort=resort)
 
 
 def sort_pages(to_sort, resort=False, queued_only=True, flush=True, disable_resolve=None):
