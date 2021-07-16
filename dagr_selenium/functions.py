@@ -666,3 +666,4 @@ def add_deactivated_filter(deviant):
     cache = manager.get_cache()
     if is_deactivated(deviant):
         cache.update('deactivated_filter', [deviant])
+        logger.log(level=15, msg="fAdded {deviant} to filter")
