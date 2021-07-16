@@ -368,8 +368,6 @@ def dump_callback(page, content, cache_io, load_more=None):
 
 
 def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_offset=None, no_crawl=None, dump_html=None, disable_resolve=None, resolved=None, **kwargs):
-    callback = None
-
     if crawl_offset:
         logger.log(level=15, msg=f"crawl_offset: {crawl_offset}")
 
@@ -384,12 +382,9 @@ def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_
                             full_crawl=full_crawl, crawl_offset=crawl_offset, no_crawl=no_crawl)
         with DAGRCache.with_queue_only(config, mode, deviant, mval, dagr_io=DAGRHTTPIo) as cache:
 
-            if dump_html:
-                def callback(page, content): return dump_callback(
-                    page, content, cache.cache_io, load_more=kwargs.get('load_more'))
-                if not cache.cache_io.dir_exists('.html'):
-                    logger.info('Creating .html dir')
-                    cache.cache_io.mkdir('.html')
+            if dump_html and not cache.cache_io.dir_exists('.html'):
+                logger.info('Creating .html dir')
+                cache.cache_io.mkdir('.html')
 
             if pages:
                 enqueued = cache.update_queue(pages)
@@ -400,7 +395,8 @@ def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_
             exclude = [*cache.get_premium(), *cache.get_httperrors()]
             pages = [p for p in pages if not p in exclude]
             rip_pages(cache, pages, full_crawl,
-                      disable_filter=disable_filter, callback=callback, **kwargs)
+                      disable_filter=disable_filter, callback=lambda page, content: dump_callback(
+                          page, content, cache.cache_io, load_more=kwargs.get('load_more')) if dump_html else None, **kwargs)
     except DagrCacheLockException:
         pass
 
