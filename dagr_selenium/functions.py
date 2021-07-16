@@ -54,6 +54,7 @@ urls_debug = pformat({
 
 logger.info(f"Queman Urls: {urls_debug}")
 
+
 def fetch_content_row():
     browser = manager.get_browser()
     try:
@@ -65,6 +66,7 @@ def fetch_content_row():
         logger.exception('Unable to fetch content')
         browser.refresh()
     return
+
 
 def remove_watchlist_item(content_row):
     browser = manager.get_browser()
@@ -101,6 +103,7 @@ def remove_watchlist_item(content_row):
                 raise
         else:
             break
+
 
 def fetch_deviation_link(content_row):
     browser = manager.get_browser()
@@ -244,6 +247,7 @@ def sort_pages(to_sort, resort=False, queued_only=True, flush=True, disable_reso
                 if not disable_resolve:
                     deviant = resolve_deviant(deviant)
             except DagrException:
+                add_deactivated_filter(deviant)
                 continue
             sleep(10)
             addst = time()
@@ -256,7 +260,9 @@ def sort_pages(to_sort, resort=False, queued_only=True, flush=True, disable_reso
                     logger.log(level=15, msg=f"Created dir {cache.rel_dir}")
                 enqueued = cache.update_queue(pages)
                 cache.prune_queue()
-                if len(cache.get_queue()) > 0 or enqueued > 0:
+                q_size = len(cache.get_queue())
+                logger.log(level=15, msg=f"Queue size is {q_size}")
+                if q_size > 0 or enqueued > 0:
                     queued_artists.append(deviant)
                     crawler_cache.update(pending_slug, [deviant])
                 progress += 1
@@ -379,7 +385,7 @@ def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_
         with DAGRCache.with_queue_only(config, mode, deviant, mval, dagr_io=DAGRHTTPIo) as cache:
 
             if dump_html:
-                callback = lambda page, content: dump_callback(
+                def callback(page, content): return dump_callback(
                     page, content, cache.cache_io, load_more=kwargs.get('load_more'))
                 if not cache.cache_io.dir_exists('.html'):
                     logger.info('Creating .html dir')
@@ -462,11 +468,10 @@ def queue_items(mode, deviants, priority=100, full_crawl=False, resolved=None):
     if not isinstance(deviants, set):
         deviants = set(deviants)
     deviants.update(cache.query(cache_slug))
-    deviants_filter = cache.query('deviants_filter')
-    cache.flush('deviants_filter')
+    deactivated_filter = cache.query('deactivated_filter')
     for deviantschunk in chunk(deviants, 5):
         items = [{'mode': mode, 'deviant': d, 'priority': priority,
-                  'full_crawl': full_crawl, 'resolved':resolved} for d in deviantschunk if not d.lower() in (df.lower() for df in deviants_filter)]
+                  'full_crawl': full_crawl, 'resolved': resolved} for d in deviantschunk if not d.lower() in (df.lower() for df in deactivated_filter)]
         logger.info(
             f"Sending {mode} {deviantschunk} to queue manager")
         try:
@@ -490,7 +495,8 @@ def queue_items(mode, deviants, priority=100, full_crawl=False, resolved=None):
 
 
 def queue_galleries(deviants, priority=100, full_crawl=False, resolved=None):
-    queue_items('gallery', deviants, priority=priority, full_crawl=full_crawl, resolved=resolved)
+    queue_items('gallery', deviants, priority=priority,
+                full_crawl=full_crawl, resolved=resolved)
 
 
 def queue_favs(deviants, priority=100, full_crawl=False):
@@ -573,11 +579,14 @@ def sort_queue_galleries(pages, resort=False, flush=True):
     cache = manager.get_cache()
     deviants_filtered = []
     deviants_sorted = sort_pages(pages, resort=resort, flush=flush)
-    d_filter = [d.lower() for d in cache.query('deviants_filter')]
-    deviants_filtered = [d for d in deviants_sorted if not d.lower() in d_filter]
+    d_filter = [d.lower() for d in cache.query('deactivated_filter')]
+    deviants_filtered = [
+        d for d in deviants_sorted if not d.lower() in d_filter]
     logger.info(pformat(deviants_filtered))
     update_bulk_galleries(deviants_filtered)
     queue_galleries(deviants_filtered, priority=50, resolved=True)
+    if flush:
+        cache.flush('deactivated_filter')
 
 
 def check_stop_file(fname=None):
@@ -637,11 +646,23 @@ def monitor_trash(full_crawl=False, resort=False):
             level=15, msg=f"Rip watchlist took {'{:.4f}'.format(time() - crawlst)} seconds")
 
 
-
-
 def update_bookmarks(mode, deviant, mval):
     cache = manager.get_cache()
     cache_slug = 'bookmarks'
     cache.query(cache_slug)
     cache.update(cache_slug, [(mode, deviant, mval)])
     cache.flush(cache_slug)
+
+
+def is_deactivated(deviant):
+    browser = manager.get_browser()
+    if not deviant.lower() in browser.current_url.lower():
+        browser.open(f"https://deviantart.com/{deviant}")
+    headline = browser.find_element_by_css_selector('h1.headline')
+    return headline and headline.innerText == 'Deactivated Account'
+
+
+def add_deactivated_filter(deviant):
+    cache = manager.get_cache()
+    if is_deactivated(deviant):
+        cache.update('deactivated_filter', [deviant])
