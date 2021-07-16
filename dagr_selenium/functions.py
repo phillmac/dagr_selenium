@@ -654,8 +654,11 @@ def is_deactivated(deviant):
     browser = manager.get_browser()
     if not deviant.lower() in browser.current_url.lower():
         browser.open(f"https://deviantart.com/{deviant}")
-    headline = browser.find_element_by_css_selector('h1.headline')
-    return headline and headline.innerText == 'Deactivated Account'
+    try:
+        headline = browser.find_element_by_css_selector('h1.headline')
+        return headline and headline.text == 'Deactivated Account'
+    except NoSuchElementException:
+        return False
 
 
 def add_deactivated_filter(deviant):
