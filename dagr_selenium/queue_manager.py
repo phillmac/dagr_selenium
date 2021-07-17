@@ -12,7 +12,7 @@ from dagr_revamped.lib import DagrException
 from dagr_revamped.utils import artist_from_url, convert_queue
 
 from dagr_selenium.functions import (config, load_bulk, manager,
-                                     update_bulk_galleries)
+                                     update_bulk_galleries, resolve_deviant)
 from dagr_selenium.QueueItem import QueueItem
 
 from .JSONHTTPBadRequest import JSONHTTPBadRequest
@@ -95,15 +95,6 @@ def detect_mval(mode, url):
     return str(PurePosixPath(*parts[len(parts) - slice_count:]))
 
 
-async def resolve_deviant(deviant):
-    try:
-        deviant, _group = manager.get_dagr().resolve_deviant(deviant)
-        return deviant
-    except DagrException:
-        logger.warning(f"Unable to resolve deviant {deviant}")
-        raise JSONHTTPBadRequest(reason='not ok: unable to resolve deviant')
-
-
 async def add_url(request):
     post_contents = await request.post()
 
@@ -124,7 +115,10 @@ async def add_url(request):
             _artist_url_p, deviant, _shortname = artist_from_url(url, mode)
             if not deviant:
                 return JSONHTTPBadRequest(reason='not ok: deviant missing')
-            deviant = await resolve_deviant(deviant)
+            try:
+                deviant = resolve_deviant(deviant)
+            except DagrException:
+                raise JSONHTTPBadRequest(reason='not ok: unable to resolve deviant')
 
         mval = detect_mval(mode, url)
         await add_to_queue(
@@ -164,9 +158,12 @@ async def remove_queue_cache_item(params):
 async def add_items(request):
     for item in await request.json():
         if (not 'resolved' in item) or (not item['resolved']):
-            item['deviant'] = await resolve_deviant(item['deviant'])
+            try:
+                item['deviant'] = resolve_deviant(item['deviant'])
+            except DagrException:
+                raise JSONHTTPBadRequest(reason='not ok: unable to resolve deviant')
+
             item['resolved'] = True
-            # await asyncio.sleep(7)
         else:
             logger.info('Deviant already resolved')
 
