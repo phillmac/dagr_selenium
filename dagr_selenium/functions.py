@@ -13,9 +13,9 @@ from dagr_revamped.DAGRManager import DAGRManager
 from dagr_revamped.exceptions import DagrCacheLockException
 from dagr_revamped.lib import DagrException
 from dagr_revamped.TCPKeepAliveSession import TCPKeepAliveSession
-from dagr_revamped.utils import (
-    artist_from_url, get_html_name, get_remote_io, http_post_raw, load_json,
-    save_json)
+from dagr_revamped.utils import (artist_from_url, get_html_name, get_remote_io,
+                                 http_post_raw, load_json, save_json)
+from DeviantResolveCache import DeviantResolveCache
 from selenium.common.exceptions import (InvalidSessionIdException,
                                         NoSuchElementException,
                                         StaleElementReferenceException)
@@ -247,9 +247,7 @@ def sort_pages(to_sort, resort=False, queued_only=True, flush=True, disable_reso
                 if not disable_resolve:
                     deviant = resolve_deviant(deviant)
             except DagrException:
-                add_deactivated_filter(deviant)
                 continue
-            sleep(10)
             addst = time()
             with DAGRCache.with_queue_only(config, 'gallery', deviant) as cache:
                 base_dir_exists = cache.cache_io.dir_exists()
@@ -464,10 +462,10 @@ def queue_items(mode, deviants, priority=100, full_crawl=False, resolved=None):
     if not isinstance(deviants, set):
         deviants = set(deviants)
     deviants.update(cache.query(cache_slug))
-    deactivated_filter = cache.query('deactivated_filter')
+    logger.info(pformat(deviants))
     for deviantschunk in chunk(deviants, 5):
         items = [{'mode': mode, 'deviant': d, 'priority': priority,
-                  'full_crawl': full_crawl, 'resolved': resolved} for d in deviantschunk if not d.lower() in (df.lower() for df in deactivated_filter)]
+                  'full_crawl': full_crawl, 'resolved': resolved} for d in deviantschunk]
         logger.info(
             f"Sending {mode} {deviantschunk} to queue manager")
         try:
@@ -521,10 +519,24 @@ def flush_errors_to_queue():
 
 
 def resolve_deviant(deviant):
+    resolve_cache = DeviantResolveCache(manager.get_cache())
+    try:
+        cached_result = resolve_cache.query(deviant)
+        if cached_result:
+            return cached_result
+    except DagrException:
+        logger.warning(f"Deviant {deviant} is listed as deactivated")
+        raise
     try:
         deviant, _group = manager.get_dagr().resolve_deviant(deviant)
+        resolve_cache.add(deviant)
         return deviant
     except DagrException:
+        if is_deactivated(deviant):
+            logger.warning(f"Deviant {deviant} is deactivated")
+            resolve_cache.add(deviant, deactivated=True)
+            logger.log(level=15, msg=f"Added {deviant} to deactivated list")
+            raise
         logger.warning(f"Unable to resolve deviant {deviant}")
         raise
 
@@ -573,14 +585,10 @@ def monitor_watchlist_action():
 
 def sort_queue_galleries(pages, resort=False, flush=True):
     cache = manager.get_cache()
-    deviants_filtered = []
     deviants_sorted = sort_pages(pages, resort=resort, flush=flush)
-    d_filter = [d.lower() for d in cache.query('deactivated_filter')]
-    deviants_filtered = [
-        d for d in deviants_sorted if not d.lower() in d_filter]
-    logger.info(pformat(deviants_filtered))
-    update_bulk_galleries(deviants_filtered)
-    queue_galleries(deviants_filtered, priority=50, resolved=True)
+    logger.info(pformat(deviants_sorted))
+    update_bulk_galleries(deviants_sorted)
+    queue_galleries(deviants_sorted, priority=50, resolved=True)
     if flush:
         cache.flush('deactivated_filter')
 
@@ -659,10 +667,3 @@ def is_deactivated(deviant):
         return headline and headline.text == 'Deactivated Account'
     except NoSuchElementException:
         return False
-
-
-def add_deactivated_filter(deviant):
-    cache = manager.get_cache()
-    if is_deactivated(deviant):
-        cache.update('deactivated_filter', [deviant])
-        logger.log(level=15, msg=f"Added {deviant} to filter")
