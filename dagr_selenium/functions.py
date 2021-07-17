@@ -489,8 +489,6 @@ def queue_items(mode, deviants, priority=100, full_crawl=False, resolved=None):
                 cache.remove(cache_slug, deviantschunk)
             except:
                 logger.exception('Error while pruning pending items cache')
-    if not resolved:
-        sleep(180)
 
 
 def queue_galleries(deviants, priority=100, full_crawl=False, resolved=None):
