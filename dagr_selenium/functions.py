@@ -15,7 +15,6 @@ from dagr_revamped.lib import DagrException
 from dagr_revamped.TCPKeepAliveSession import TCPKeepAliveSession
 from dagr_revamped.utils import (artist_from_url, get_html_name, get_remote_io,
                                  http_post_raw, load_json, save_json)
-from DeviantResolveCache import DeviantResolveCache
 from selenium.common.exceptions import (InvalidSessionIdException,
                                         NoSuchElementException,
                                         StaleElementReferenceException)
@@ -23,6 +22,8 @@ from selenium.common.exceptions import \
     TimeoutException as SeleniumTimeoutException
 from selenium.common.exceptions import WebDriverException
 from urllib3.util.retry import Retry
+
+from .DeviantResolveCache import DeviantResolveCache
 
 click_sleep_time = 0.300
 monitor_sleep = environ.get('MONITOR_SLEEP', 300)

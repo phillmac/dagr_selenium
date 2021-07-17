@@ -1,5 +1,6 @@
 import logging
 from time import time
+from random import randint
 
 from dagr_revamped.exceptions import DagrException
 
@@ -48,7 +49,7 @@ class DeviantResolveCache():
     def add(self, deviant, deactivated=False):
         entry = {
             'resolved': deviant,
-            'expiry': time() + 86400 * 10 if deactivated else 5
+            'expiry': time()  + randint(0, 86400)+ 86400 * 9 if deactivated else 4
         }
 
         if deactivated:
