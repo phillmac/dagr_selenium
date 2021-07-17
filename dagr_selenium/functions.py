@@ -282,8 +282,9 @@ def sort_pages(to_sort, resort=False, queued_only=True, flush=True, disable_reso
         try:
             if flush:
                 crawler_cache.flush(cache_slug)
+                resolve_cache.flush()
         except:
-            logger.exception('Error while flushing cache')
+            logger.exception('Error while flushing cachees')
         logger.info(f"Added {pcount} pages to sorted list")
     return queued_artists if queued_only else list(artists.keys())
 
@@ -488,7 +489,8 @@ def queue_items(mode, deviants, priority=100, full_crawl=False, resolved=None):
                 cache.remove(cache_slug, deviantschunk)
             except:
                 logger.exception('Error while pruning pending items cache')
-    sleep(180)
+    if not resolved:
+        sleep(180)
 
 
 def queue_galleries(deviants, priority=100, full_crawl=False, resolved=None):
