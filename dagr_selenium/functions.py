@@ -220,6 +220,7 @@ def sort_watchlist(resort=False):
 def sort_pages(to_sort, resort=False, queued_only=True, flush=True, disable_resolve=None):
     sorted_pages = set()
     crawler_cache = manager.get_cache()
+    resolve_cache = DeviantResolveCache(crawler_cache)
     cache_slug = 'sorted'
     pending_slug = 'pending_gallery'
     history = crawler_cache.query(cache_slug)
@@ -245,7 +246,7 @@ def sort_pages(to_sort, resort=False, queued_only=True, flush=True, disable_reso
         try:
             try:
                 if not disable_resolve:
-                    deviant = resolve_deviant(deviant)
+                    deviant = resolve_deviant(deviant, resolve_cache)
             except DagrException:
                 continue
             addst = time()
@@ -518,8 +519,10 @@ def flush_errors_to_queue():
         logger.exception('Error while enqueueing items')
 
 
-def resolve_deviant(deviant):
-    resolve_cache = DeviantResolveCache(manager.get_cache())
+def resolve_deviant(deviant, resolve_cache = None):
+    if resolve_cache is None:
+        resolve_cache = DeviantResolveCache(manager.get_cache())
+    logger.info(f"Attempting to resolve {deviant}")
     try:
         cached_result = resolve_cache.query(deviant)
         if cached_result:
