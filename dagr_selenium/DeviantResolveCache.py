@@ -74,3 +74,4 @@ class DeviantResolveCache():
 
     def flush(self):
         self.prune()
+        self.__storage.flush(self.__slug)
