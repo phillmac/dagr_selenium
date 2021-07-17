@@ -48,12 +48,12 @@ queueman_enqueue_url = environ.get('QUEUEMAN_ENQUEUE_URL', None) or config.get(
     'dagr.plugins.selenium', 'queueman_enqueue_url', key_errors=False) or 'http://127.0.0.1:3005/items'
 
 
-urls_debug = pformat({
+
+logger.info('Queman Urls:')
+logger.info(pformat({
     'queueman_fetch_url':  queueman_fetch_url,
     'queueman_enqueue_url': queueman_enqueue_url
-})
-
-logger.info(f"Queman Urls: {urls_debug}")
+}))
 
 
 def fetch_content_row():
@@ -591,7 +591,6 @@ def monitor_watchlist_action():
 def sort_queue_galleries(pages, resort=False, flush=True):
     cache = manager.get_cache()
     deviants_sorted = sort_pages(pages, resort=resort, flush=flush)
-    logger.info(pformat(deviants_sorted))
     update_bulk_galleries(deviants_sorted)
     queue_galleries(deviants_sorted, priority=50, resolved=True)
     if flush:
