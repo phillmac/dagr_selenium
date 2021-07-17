@@ -166,7 +166,7 @@ async def add_items(request):
         if (not 'resolved' in item) or (not item['resolved']):
             item['deviant'] = await resolve_deviant(item['deviant'])
             item['resolved'] = True
-            await asyncio.sleep(7)
+            # await asyncio.sleep(7)
         else:
             logger.info('Deviant already resolved')
 
