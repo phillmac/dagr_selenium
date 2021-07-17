@@ -258,8 +258,9 @@ def sort_pages(to_sort, resort=False, queued_only=True, flush=True, disable_reso
                 if not base_dir_exists:
                     cache.cache_io.mkdir()
                     logger.log(level=15, msg=f"Created dir {cache.rel_dir}")
+                rcount = cache.prune_queue()
+                logger.log(level=15, msg=f"Removed {rcount} pages from queue")
                 enqueued = cache.update_queue(pages)
-                cache.prune_queue()
                 q_size = len(cache.get_queue())
                 logger.log(level=15, msg=f"Queue size is {q_size}")
                 if q_size > 0 or enqueued > 0:
@@ -520,7 +521,7 @@ def flush_errors_to_queue():
         logger.exception('Error while enqueueing items')
 
 
-def resolve_deviant(deviant, resolve_cache = None):
+def resolve_deviant(deviant, resolve_cache=None):
     if resolve_cache is None:
         resolve_cache = DeviantResolveCache(manager.get_cache())
     logger.info(f"Attempting to resolve {deviant}")
