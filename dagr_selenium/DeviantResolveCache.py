@@ -49,7 +49,7 @@ class DeviantResolveCache():
     def add(self, deviant, deactivated=False):
         entry = {
             'resolved': deviant,
-            'expiry': time()  + randint(0, 86400)+ 86400 * 9 if deactivated else 4
+            'expiry': time() + randint(0, 86400) + 86400 * 9 if deactivated else 4
         }
 
         if deactivated:
