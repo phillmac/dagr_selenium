@@ -43,7 +43,7 @@ class DeviantResolveCache():
         prune_items = set()
         for e in self.__storage.query(self.__slug):
             if t_now > dict(e)['expiry']:
-                prune_items.update(e)
+                prune_items.update([e])
         self.remove(prune_items)
 
     def add(self, deviant, deactivated=False):
