@@ -1,8 +1,11 @@
 import logging
 from os import environ, truncate
 
+import dagr_revamped.version as dagr_revamped_version
+
 from .functions import config, manager, sort_watchlist
 
+print('Dagr version:', dagr_revamped_version)
 
 resort = (environ['RESORT'] if environ.get('RESORT')
           else input('Resort?: ')).lower().startswith('y')
