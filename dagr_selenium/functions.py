@@ -384,9 +384,9 @@ def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_
                             full_crawl=full_crawl, crawl_offset=crawl_offset, no_crawl=no_crawl)
         with DAGRCache.with_queue_only(config, mode, deviant, mval, dagr_io=DAGRHTTPIo) as cache:
 
-            if dump_html and not cache.cache_io.dir_exists('.html'):
+            if dump_html and not cache.cache_io.dir_exists(dir_name='.html'):
                 logger.info('Creating .html dir')
-                cache.cache_io.mkdir('.html')
+                cache.cache_io.mkdir(dir_name='.html')
 
             if pages:
                 enqueued = cache.update_queue(pages)
