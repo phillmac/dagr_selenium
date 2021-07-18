@@ -245,11 +245,11 @@ def sort_pages(to_sort, resort=False, queued_only=True, flush=True, disable_reso
     queued_artists = []
     for deviant, pages in artists.items():
         try:
-            try:
-                if not disable_resolve:
-                    deviant = resolve_deviant(deviant, resolve_cache)
-            except DagrException:
-                continue
+            if not disable_resolve:
+                deviant = resolve_deviant(deviant, resolve_cache)
+        except DagrException:
+            continue
+        try:
             addst = time()
             with DAGRCache.with_queue_only(config, 'gallery', deviant) as cache:
                 base_dir_exists = cache.cache_io.dir_exists()
@@ -258,8 +258,6 @@ def sort_pages(to_sort, resort=False, queued_only=True, flush=True, disable_reso
                 if not base_dir_exists:
                     cache.cache_io.mkdir()
                     logger.log(level=15, msg=f"Created dir {cache.rel_dir}")
-                rcount = cache.prune_queue()
-                logger.log(level=15, msg=f"Removed {rcount} pages from queue")
                 enqueued = cache.update_queue(pages)
                 q_size = len(cache.get_queue())
                 logger.log(level=15, msg=f"Queue size is {q_size}")
