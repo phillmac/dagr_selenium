@@ -1,9 +1,8 @@
 import asyncio
 import logging
-from copy import copy
 from os import environ
 from pprint import pformat
-from time import sleep
+from dagr_revamped.utils import sleep
 
 from selenium.common.exceptions import (InvalidSessionIdException,
                                         WebDriverException)
