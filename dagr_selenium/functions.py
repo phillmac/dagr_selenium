@@ -666,6 +666,6 @@ def is_deactivated(deviant):
         browser.open(f"https://deviantart.com/{deviant}")
     try:
         headline = browser.find_element_by_css_selector('h1.headline')
-        return headline and headline.text == 'Deactivated Account'
+        return headline.text == 'Deactivated Account' or headline.text == 'Forbidden'
     except NoSuchElementException:
         return False
