@@ -4,7 +4,6 @@ import re
 from os import environ
 from pathlib import Path, PurePosixPath
 from pprint import pformat
-from threading import Lock
 
 from aiohttp import web
 from aiohttp.web_response import json_response
@@ -19,7 +18,7 @@ from .JSONHTTPBadRequest import JSONHTTPBadRequest
 
 queue = asyncio.PriorityQueue()
 
-queue_lock = Lock()
+queue_lock = asyncio.Lock()
 
 env_level = environ.get('dagr.queueman.logging.level', None)
 level_mapped = config.map_log_level(
@@ -132,7 +131,7 @@ async def add_url(request):
 
 
 async def update_queue_cache(params):
-    with queue_lock:
+    async with queue_lock:
         try:
             cache.update(queue_slug, params)
         except:
@@ -140,7 +139,7 @@ async def update_queue_cache(params):
 
 
 async def flush_queue_cache():
-    with queue_lock:
+    async with queue_lock:
         try:
             cache.flush(queue_slug)
         except:
@@ -148,7 +147,7 @@ async def flush_queue_cache():
 
 
 async def remove_queue_cache_item(params):
-    with queue_lock:
+    async with queue_lock:
         try:
             cache.remove(queue_slug, params)
         except:
