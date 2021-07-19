@@ -10,8 +10,7 @@ from dagr_revamped.builtin_plugins.classes.DAGRHTTPIo import DAGRHTTPIo
 from dagr_revamped.dagr_logging import log
 from dagr_revamped.DAGRCache import DAGRCache
 from dagr_revamped.DAGRManager import DAGRManager
-from dagr_revamped.exceptions import DagrCacheLockException
-from dagr_revamped.lib import DagrException
+from dagr_revamped.exceptions import DagrCacheLockException, DagrException
 from dagr_revamped.TCPKeepAliveSession import TCPKeepAliveSession
 from dagr_revamped.utils import (artist_from_url, get_html_name, get_remote_io,
                                  http_post_raw, load_json, save_json)
