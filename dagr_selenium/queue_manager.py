@@ -10,11 +10,12 @@ from aiohttp.web_response import json_response
 from dagr_revamped.lib import DagrException
 from dagr_revamped.utils import artist_from_url, convert_queue
 
+from dagr_selenium.DeviantResolveCache import DeviantResolveCache
 from dagr_selenium.functions import (config, load_bulk, manager,
-                                     update_bulk_galleries, resolve_deviant)
+                                     update_bulk_galleries)
+from dagr_selenium.JSONHTTPBadRequest import JSONHTTPBadRequest
 from dagr_selenium.QueueItem import QueueItem
-
-from .JSONHTTPBadRequest import JSONHTTPBadRequest
+from dagr_selenium.utils import resolve_deviant
 
 queue = asyncio.PriorityQueue()
 
@@ -42,7 +43,8 @@ nd_modes = config.get('deviantart', 'ndmodes').split(',')
 queue_slug = 'queue'
 watchlist_slug = 'watch_urls'
 cache = manager.get_cache()
-
+resolve_cache = DeviantResolveCache(cache)
+resolve_cache.flush()
 
 class waitingCount():
     def __init__(self):
@@ -115,9 +117,10 @@ async def add_url(request):
             if not deviant:
                 return JSONHTTPBadRequest(reason='not ok: deviant missing')
             try:
-                deviant = resolve_deviant(deviant)
+                deviant = resolve_deviant(deviant, manager, resolve_cache)
             except DagrException:
-                raise JSONHTTPBadRequest(reason='not ok: unable to resolve deviant')
+                raise JSONHTTPBadRequest(
+                    reason='not ok: unable to resolve deviant')
 
         mval = detect_mval(mode, url)
         await add_to_queue(
@@ -158,9 +161,10 @@ async def add_items(request):
     for item in await request.json():
         if (not 'resolved' in item) or (not item['resolved']):
             try:
-                item['deviant'] = resolve_deviant(item['deviant'])
+                item['deviant'] = resolve_deviant(item['deviant'], manager, resolve_cache)
             except DagrException:
-                raise JSONHTTPBadRequest(reason='not ok: unable to resolve deviant')
+                raise JSONHTTPBadRequest(
+                    reason='not ok: unable to resolve deviant')
 
             item['resolved'] = True
         else:
@@ -201,7 +205,7 @@ async def update_watchlist_cache(request):
     urls = await request.json()
     cache.update(watchlist_slug, urls)
     asyncio.create_task(flush_watchlist_cache())
-    return json_response('ok', headers = {
+    return json_response('ok', headers={
         'Access-Control-Allow-Origin': '*'
     })
 
@@ -237,7 +241,4 @@ def run_app():
 
 if __name__ == '__main__':
     with manager.get_dagr():
-        login_policy = config.get('dagr.plugins.selenium', 'login_policy')
-        if login_policy == 'enabled' or login_policy == 'force':
-            manager.get_browser().do_login()
         run_app()
