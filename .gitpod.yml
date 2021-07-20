@@ -10,6 +10,9 @@ ports:
     onOpen: ignore
     visibility: private
 tasks:
-- command: >
-    pip install -e . &&
-    docker build . --tag phillmac/dagr_selenium
+  - init: install deps
+    command: >
+      pip install -r dev-requirements.txt &&
+      pip install -e .
+  - command: >
+      docker build . --tag phillmac/dagr_selenium
