@@ -14,8 +14,8 @@ setup(
     install_requires=[
         'docopt==0.6.2',
         'python-dotenv==0.17.1',
-        'dagr_revamped @ git+https://github.com/phillmac/dagr_revamped@0.2.136.dev0#egg=dagr_revamped',
-        'selenium==3.141.0',
+        'dagr_revamped @ git+https://github.com/phillmac/dagr_revamped@#egg=dagr_revamped',
+        'selenium==3.141.0',0.2.137.dev0
         'aiofiles @ git+https://github.com/phillmac/aiofiles@0.13.0dev0',
         'aiohttp==3.7.4.post0',
         'portalocker==2.3.0'
