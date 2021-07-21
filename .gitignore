@@ -130,3 +130,6 @@ dmypy.json
 
 #VSCode
 .vscode/
+
+#Test results
+tests/intergration/test_results/
