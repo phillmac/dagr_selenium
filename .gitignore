@@ -132,4 +132,4 @@ dmypy.json
 .vscode/
 
 #Test results
-tests/intergration/test_results/
+test_results/
