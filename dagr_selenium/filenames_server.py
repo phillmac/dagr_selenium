@@ -800,7 +800,7 @@ async def rename_item(item_type, request):
 
     if item_type == 'dir':
         try:
-            oldin = get_subdir(request.app,
+            oldin = await get_subdir(request.app,
                                Path(path_param).joinpath(itemname))
         except StopAsyncIteration:
             raise JSONHTTPBadRequest(reason='not ok: item does not exist')
