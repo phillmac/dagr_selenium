@@ -27,6 +27,9 @@ class DeviantResolveCache():
                 elif entry['expiry'] > self.__contents[d_lower]:
                     self.__contents[d_lower] = entry
 
+    def query_raw(self, deviant):
+        return self.__contents.get(deviant.lower(), None)
+
     def query(self, deviant):
         entry = self.__contents.get(deviant.lower(), None)
         if entry:
