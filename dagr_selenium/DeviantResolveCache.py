@@ -24,7 +24,7 @@ class DeviantResolveCache():
                 d_lower = entry['resolved'].lower()
                 if not d_lower in self.__contents:
                     self.__contents[d_lower] = entry
-                elif entry['expiry'] > self.__contents[d_lower]:
+                elif entry['expiry'] > self.__contents[d_lower]['expiry']:
                     self.__contents[d_lower] = entry
 
     def query_raw(self, deviant):
@@ -45,8 +45,13 @@ class DeviantResolveCache():
         t_now = time()
         prune_items = set()
         for e in self.__storage.query(self.__slug):
-            if t_now > dict(e)['expiry']:
+            entry = dict(e)
+            if t_now > (entry['expiry']):
+                deviant = entry['resolved'].lower()
                 prune_items.update([e])
+                if deviant in self.__contents:
+                    del self.__contents[deviant]
+                logger.info(f"Pruning expired {e} entry")
         self.remove(prune_items)
 
     def add(self, deviant, deactivated=False):
@@ -64,7 +69,7 @@ class DeviantResolveCache():
     def remove(self, items):
         remove_count = len(items)
         if remove_count > 0:
-            logger.log(level=15, msg=f"Removing {remove_count}")
+            logger.log(level=15, msg=f"Removing {remove_count} items")
             self.__storage.remove(self.__slug, items)
 
     def purge(self, deviant):
@@ -76,5 +81,7 @@ class DeviantResolveCache():
         self.remove(remove_items)
 
     def flush(self):
+        self.__load_contents()
         self.prune()
         self.__storage.flush(self.__slug)
+
