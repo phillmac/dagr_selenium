@@ -46,6 +46,7 @@ cache = manager.get_cache()
 resolve_cache = DeviantResolveCache(cache)
 resolve_cache.flush()
 
+
 class waitingCount():
     def __init__(self):
         self.__value = 0
@@ -161,7 +162,8 @@ async def add_items(request):
     for item in await request.json():
         if (not 'resolved' in item) or (not item['resolved']):
             try:
-                item['deviant'] = resolve_deviant(item['deviant'], manager, resolve_cache)
+                item['deviant'] = resolve_deviant(
+                    item['deviant'], manager, resolve_cache)
             except DagrException:
                 raise JSONHTTPBadRequest(
                     reason='not ok: unable to resolve deviant')
@@ -209,6 +211,7 @@ async def update_watchlist_cache(request):
         'Access-Control-Allow-Origin': '*'
     })
 
+
 async def resolve(request):
     params = await request.json()
 
@@ -223,6 +226,7 @@ async def resolve(request):
         raise JSONHTTPBadRequest(
             reason='not ok: unable to resolve deviant')
 
+
 async def query_resolve_cache(request):
     params = await request.json()
 
@@ -232,6 +236,12 @@ async def query_resolve_cache(request):
         return JSONHTTPBadRequest(reason='not ok: deviant missing')
 
     return json_response({'result': resolve_cache.query_raw(deviant)})
+
+
+async def reload_queue(request):
+    await load_cached_queue()
+    return json_response('ok')
+
 
 async def load_cached_queue():
     loaded = [QueueItem(**dict(i)) for i in cache.query(queue_slug)]
@@ -244,6 +254,7 @@ async def load_cached_queue():
 def run_app():
     app = web.Application()
     app.router.add_get('/ping', lambda: json_response('pong'))
+    app.router.add_post('/reload', reload_queue)
     app.router.add_post('/url', add_url)
     app.router.add_get('/item', get_item)
     app.router.add_post('/items', add_items)
