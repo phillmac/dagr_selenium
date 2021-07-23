@@ -21,10 +21,9 @@ def shutdown_app(request):
     request.app['shutdown'].set()
     return json_response('ok')
 
-async def update_watchlist_cache(request):
+async def update_cache(request, slug):
     urls = await request.json()
     cache = request.app['crawler_cache']
-    slug = request.app['watchlist_slug']
 
     cache.update(slug, urls)
     asyncio.create_task(flush_cache(cache, slug))
@@ -76,14 +75,14 @@ async def run_app():
 
         app = web.Application(client_max_size=1024**2 * 100)
         app.router.add_post('/shutdown', shutdown_app)
-        app.router.add_post('/watchlist/items', update_watchlist_cache)
+        app.router.add_post('/watchlist/items', lambda request: update_cache(request, 'watch_urls'))
+        app.router.add_post('/trash/items', lambda request: update_cache(request, 'trash_urls'))
 
         app['shutdown'] = asyncio.Event()
         app['sessions'] = sessions
         app['work_items'] = dict()
         app['sleepmgr'] = SleepMgr(app, 300)
         app['crawler_cache'] = manager.get_cache()
-        app['watchlist_slug'] = 'watch_urls'
 
         app.on_startup.append(start_background_tasks)
         app.on_cleanup.append(cleanup_background_tasks)
@@ -100,7 +99,7 @@ async def run_app():
             "(Press CTRL+C to quit)".format(", ".join(names))
         )
 
-        while not app['shutdown'].is_set() and not await check_stop_file(manager, 'STOP_REMOTE_MON_WATCHLIST'):
+        while not app['shutdown'].is_set() and not await check_stop_file(manager, 'STOP_REMOTE_MON'):
             await app['sleepmgr'].sleep()
             await sort_watchlist(manager, queueman_session, enqueue_url)
 
