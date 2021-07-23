@@ -586,12 +586,10 @@ def monitor_watchlist_action():
 
 
 def sort_queue_galleries(pages, resort=False, flush=True):
-    cache = manager.get_cache()
     deviants_sorted = sort_pages(pages, resort=resort, flush=flush)
     update_bulk_galleries(deviants_sorted)
     queue_galleries(deviants_sorted, priority=50, resolved=True)
-    if flush:
-        cache.flush('deactivated_filter')
+
 
 
 def check_stop_file(fname=None):

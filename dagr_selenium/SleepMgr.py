@@ -1,12 +1,13 @@
 import asyncio
 
 class SleepMgr():
-    def __init__(self, app):
+    def __init__(self, app, delay=3600):
         self.__sleep = None
+        self.__delay = delay
         self.__shutdown = app['shutdown']
 
     async def sleep(self):
-        self.__sleep = asyncio.create_task(asyncio.sleep(3600))
+        self.__sleep = asyncio.create_task(asyncio.sleep(self.__delay))
         try:
             await self.__sleep
         except asyncio.CancelledError:
