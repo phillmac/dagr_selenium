@@ -298,3 +298,10 @@ async def sort_watchlist(manager, session, endpoint, resort=False):
     cache = manager.get_cache()
     cache_slug = 'watch_urls'
     await sort_queue_galleries(manager=manager, session=session, endpoint=endpoint, pages=cache.query(cache_slug), resort=resort)
+
+async def sort_all(manager, session, endpoint, resort=False):
+    cache = manager.get_cache()
+    pages=set()
+    for cache_slug in [ 'watch_urls', 'trash_urls']:
+        pages.update(cache.query(cache_slug))
+    await sort_queue_galleries(manager=manager, session=session, endpoint=endpoint, pages=pages, resort=resort)

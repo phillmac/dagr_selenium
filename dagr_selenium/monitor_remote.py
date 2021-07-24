@@ -10,7 +10,7 @@ from dagr_revamped.TCPKeepAliveSession import TCPKeepAliveSession
 from dotenv import load_dotenv
 
 from dagr_selenium.SleepMgr import SleepMgr
-from dagr_selenium.utils import check_stop_file, get_urls, sort_watchlist
+from dagr_selenium.utils import check_stop_file, get_urls, sort_all
 
 print('Dagr version:', dagr_revamped_version)
 
@@ -44,7 +44,7 @@ async def cleanup_caches(app):
     sessions_cache = app['sessions']
 
     for _k, v in app['sessions'].items():
-        await v.close()
+        v.close()
 
     sessions_cache.clear()
 
@@ -101,7 +101,7 @@ async def run_app():
 
         while not app['shutdown'].is_set() and not await check_stop_file(manager, 'STOP_REMOTE_MON'):
             await app['sleepmgr'].sleep()
-            await sort_watchlist(manager, queueman_session, enqueue_url)
+            await sort_all(manager, queueman_session, enqueue_url)
 
         print('Shutting down')
 
