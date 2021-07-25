@@ -1,4 +1,5 @@
 import asyncio
+from dagr_selenium.DeviantResolveCache import DeviantResolveCache
 import logging
 from os import environ
 
@@ -31,6 +32,19 @@ async def update_cache(request, slug):
         'Access-Control-Allow-Origin': '*'
     })
 
+async def purge_resolve_cache_items(request):
+    deviants = await request.json()
+    crawler_cache = request.app['crawler_cache']
+    resolve_cache = DeviantResolveCache(crawler_cache)
+
+    if not isinstance(deviants, list):
+        deviants = list(deviants)
+
+    for d in deviants:
+        resolve_cache.purge(d)
+
+    return json_response('ok')
+
 
 async def start_background_tasks(app):
     pass
@@ -58,11 +72,11 @@ async def run_app():
     config = manager.get_config()
 
 
-    env_level = environ.get('dagr.monitor_watchlist_remote.logging.level', None)
+    env_level = environ.get('dagr.monitor_remote.logging.level', None)
     level_mapped = config.map_log_level(
     int(env_level)) if not env_level is None else None
 
-    manager.set_mode('monitor_watchlist_remote')
+    manager.set_mode('monitor_remote')
     manager.init_logging(level_mapped)
 
     with manager.get_dagr():
@@ -77,6 +91,7 @@ async def run_app():
         app.router.add_post('/shutdown', shutdown_app)
         app.router.add_post('/watchlist/items', lambda request: update_cache(request, 'watch_urls'))
         app.router.add_post('/trash/items', lambda request: update_cache(request, 'trash_urls'))
+        app.router.add_delete('/resolve/cache/items', purge_resolve_cache_items)
 
         app['shutdown'] = asyncio.Event()
         app['sessions'] = sessions

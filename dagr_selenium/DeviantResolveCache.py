@@ -75,7 +75,8 @@ class DeviantResolveCache():
     def purge(self, deviant):
         d_lower = deviant.lower()
         remove_items = set()
-        for e  in self.__storage.query(self.__slug):
+        logger.log(level=15, msg=f"Purging {deviant} items")
+        for e in self.__storage.query(self.__slug):
             entry = dict(e)
             if entry['resolved'].lower() == d_lower:
                 remove_items.update([e])
