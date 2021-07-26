@@ -118,7 +118,7 @@ async def add_url(request):
             if deviant is None:
                 return JSONHTTPBadRequest(reason='not ok: deviant missing')
             try:
-                deviant = resolve_deviant(deviant, manager, resolve_cache)
+                deviant = await resolve_deviant(deviant, manager, resolve_cache)
             except DagrException:
                 raise JSONHTTPBadRequest(
                     reason='not ok: unable to resolve deviant')
@@ -162,7 +162,7 @@ async def add_items(request):
     for item in await request.json():
         if (not 'resolved' in item) or (not item['resolved']):
             try:
-                item['deviant'] = resolve_deviant(
+                item['deviant'] = await resolve_deviant(
                     item['deviant'], manager, resolve_cache)
             except DagrException:
                 raise JSONHTTPBadRequest(
@@ -220,7 +220,7 @@ async def resolve(request):
     if deviant is None:
         return JSONHTTPBadRequest(reason='not ok: deviant missing')
     try:
-        resolved = resolve_deviant(deviant, manager, resolve_cache)
+        resolved = await resolve_deviant(deviant, manager, resolve_cache)
         return json_response({'deviant': deviant, 'resolved': resolved})
     except DagrException:
         raise JSONHTTPBadRequest(
