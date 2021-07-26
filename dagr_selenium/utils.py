@@ -79,18 +79,16 @@ async def is_deactivated(deviant, manager):
         except NoSuchElementException:
             return False
 
-
-async def resolve_deviant(manager, deviant, resolve_cache=None):
-    if resolve_cache is None:
-        resolve_cache = DeviantResolveCache(manager.get_cache())
+async def query_resolve_cache(resolve_cache, deviant):
     logger.info(f"Attempting to resolve {deviant}")
     try:
-        cached_result = resolve_cache.query(deviant)
-        if cached_result:
-            return cached_result
+        return resolve_cache.query(deviant)
     except DagrException:
         logger.warning(f"Deviant {deviant} is listed as deactivated")
         raise
+
+async def resolve_query_deviantart(manager, resolve_cache, deviant):
+
     with manager.get_browser().get_r_context():
         try:
             deviant, _group = manager.get_dagr().resolve_deviant(deviant)
@@ -107,16 +105,34 @@ async def resolve_deviant(manager, deviant, resolve_cache=None):
             raise
 
 
+async def resolve_deviant(manager, deviant, resolve_cache=None):
+    if resolve_cache is None:
+        resolve_cache = DeviantResolveCache(manager.get_cache())
+    if cached_result := query_resolve_cache(resolve_cache, deviant):
+        return cached_result
+    return resolve_query_deviantart(manager, resolve_cache, deviant)
+
 async def resolve_artists(manager, artists, flush=True):
     resolved_artists = {}
     resolve_cache = DeviantResolveCache(manager.get_cache())
+    uncached = {}
 
     for k, v in artists.items():
         try:
-            resolved = await resolve_deviant(manager, k, resolve_cache)
-            resolved_artists[resolved] = v
+            if resolved := await query_resolve_cache(resolve_cache, k):
+                resolved_artists[resolved] = v
+            else:
+                uncached[k] = v
         except DagrException:
             continue
+
+    with manager.get_browser().get_r_context():
+        for k, v in uncached.items():
+            try:
+                resolved = await resolve_deviant(manager, k, resolve_cache)
+                resolved_artists[resolved] = v
+            except DagrException:
+                continue
 
     if flush:
         resolve_cache.flush()
