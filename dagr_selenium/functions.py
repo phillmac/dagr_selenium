@@ -1,7 +1,7 @@
 import logging
 import os
 from itertools import islice
-from os import environ
+from os import environ, truncate
 from pathlib import Path
 from pprint import pformat, pprint
 from time import sleep, time
@@ -375,6 +375,10 @@ def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_
             deviant = resolve_deviant(deviant)
         except DagrException:
             pass
+
+    if 'html' in mode:
+        dump_html = True
+        mode = mode.replace('_html', '')
 
     try:
         pages = crawl_pages(mode, deviant, mval=mval,
