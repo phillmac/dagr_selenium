@@ -108,7 +108,7 @@ async def resolve_query_deviantart(manager, resolve_cache, deviant):
 async def resolve_deviant(manager, deviant, resolve_cache=None):
     if resolve_cache is None:
         resolve_cache = DeviantResolveCache(manager.get_cache())
-    if cached_result := query_resolve_cache(resolve_cache, deviant):
+    if cached_result := await query_resolve_cache(resolve_cache, deviant):
         return cached_result
     return resolve_query_deviantart(manager, resolve_cache, deviant)
 

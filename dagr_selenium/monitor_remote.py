@@ -38,12 +38,13 @@ async def purge_resolve_cache_items(request):
     resolve_cache = DeviantResolveCache(crawler_cache)
 
     if not isinstance(deviants, list):
-        deviants = list(deviants)
+        deviants = [deviants]
 
     for d in deviants:
         resolve_cache.purge(d)
 
     return json_response('ok')
+
 
 
 async def start_background_tasks(app):
@@ -92,6 +93,8 @@ async def run_app():
         app.router.add_post('/watchlist/items', lambda request: update_cache(request, 'watch_urls'))
         app.router.add_post('/trash/items', lambda request: update_cache(request, 'trash_urls'))
         app.router.add_delete('/resolve/cache/items', purge_resolve_cache_items)
+        app.router.add_post('/resort/all', lambda request: update_cache(request, 'trash_urls'))
+
 
         app['shutdown'] = asyncio.Event()
         app['sessions'] = sessions
