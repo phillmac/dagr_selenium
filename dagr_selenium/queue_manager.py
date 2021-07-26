@@ -237,6 +237,10 @@ async def query_resolve_cache(request):
 
     return json_response({'result': resolve_cache.query_raw(deviant)})
 
+async def flush_resolve_cache(request):
+    resolve_cache.flush()
+    return json_response('ok')
+
 
 async def reload_queue(request):
     await load_cached_queue()
@@ -260,6 +264,7 @@ def run_app():
     app.router.add_post('/items', add_items)
     app.router.add_get('/resolve', resolve)
     app.router.add_get('/resolve/cache/query', query_resolve_cache)
+    app.router.add_post('/resolve/cache/flush', flush_resolve_cache)
     app.router.add_get(
         '/count', lambda request: json_response({'count': queue.qsize()}))
     app.router.add_get(
