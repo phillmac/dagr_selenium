@@ -125,14 +125,14 @@ async def resolve_artists(manager, artists, flush=True):
                 uncached[k] = v
         except DagrException:
             continue
-
-    with manager.get_browser().get_r_context():
-        for k, v in uncached.items():
-            try:
-                resolved = await resolve_deviant(manager, k, resolve_cache)
-                resolved_artists[resolved] = v
-            except DagrException:
-                continue
+    if len(uncached) > 0:
+        with manager.get_browser().get_r_context():
+            for k, v in uncached.items():
+                try:
+                    resolved = await resolve_deviant(manager, k, resolve_cache)
+                    resolved_artists[resolved] = v
+                except DagrException:
+                    continue
 
     if flush:
         resolve_cache.flush()
