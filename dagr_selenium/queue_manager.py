@@ -151,7 +151,9 @@ async def flush_queue_cache():
 
 
 async def remove_queue_cache_item(params):
+    logger.info('Waiting for queue lock')
     async with queue_lock:
+        logger.info(f"removing {params} from queue cache")
         try:
             cache.remove(queue_slug, params)
         except:
