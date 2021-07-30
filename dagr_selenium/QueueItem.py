@@ -1,10 +1,11 @@
 from .functions import rip, update_bookmarks
+from asyncio import Event
 
 
 class QueueItem():
     def __init__(self, **kwargs) -> None:
-        kwargs['mode'] = kwargs.get('mode', '').lower()
         self.__params = kwargs
+        self.complete = Event()
 
     @property
     def params(self):
@@ -12,7 +13,7 @@ class QueueItem():
 
     @property
     def mode(self):
-        return self.__params.get('mode')
+        return self.__params.get('mode').lower()
 
     @property
     def deviant(self):
@@ -21,6 +22,10 @@ class QueueItem():
     @property
     def mval(self):
         return self.__params.get('mval')
+
+    @property
+    def resolved(self):
+        return self.__params.get('resolved')
 
     @property
     def priority(self):
