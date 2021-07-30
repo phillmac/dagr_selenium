@@ -110,7 +110,7 @@ async def resolve_deviant(manager, deviant, resolve_cache=None):
         resolve_cache = DeviantResolveCache(manager.get_cache())
     if cached_result := await query_resolve_cache(resolve_cache, deviant):
         return cached_result
-    return resolve_query_deviantart(manager, resolve_cache, deviant)
+    return await resolve_query_deviantart(manager, resolve_cache, deviant)
 
 async def resolve_artists(manager, artists, flush=True):
     resolved_artists = {}
@@ -129,7 +129,7 @@ async def resolve_artists(manager, artists, flush=True):
         with manager.get_browser().get_r_context():
             for k, v in uncached.items():
                 try:
-                    resolved = await resolve_deviant(manager, k, resolve_cache)
+                    resolved = await resolve_query_deviantart(manager, resolve_cache, k)
                     resolved_artists[resolved] = v
                 except DagrException:
                     continue
