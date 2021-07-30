@@ -4,16 +4,22 @@ from asyncio import Event
 
 class QueueItem():
     def __init__(self, **kwargs) -> None:
+        self.__raw = kwargs.copy()
+        kwargs['mode'] = kwargs.get('mode', '').lower()
         self.__params = kwargs
         self.complete = Event()
 
     @property
+    def raw_params(self):
+        return self.__raw.copy()
+
+    @property
     def params(self):
-        return {k: v for k, v in self.__params.items()}
+        return self.__params.copy()
 
     @property
     def mode(self):
-        return self.__params.get('mode').lower()
+        return self.__params.get('mode')
 
     @property
     def deviant(self):

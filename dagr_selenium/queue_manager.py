@@ -196,7 +196,7 @@ async def get_item(request):
     queue.task_done()
     params = item.params
     logger.info(f"Dequed item {params}")
-    asyncio.create_task(remove_queue_cache_item(params))
+    asyncio.create_task(remove_queue_cache_item(item.raw_params))
     logger.info('Finished get_item request')
     return json_response(params)
 
