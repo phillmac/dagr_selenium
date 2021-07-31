@@ -223,16 +223,17 @@ async def sort_pages(manager, to_sort, **kwargs):
 
     logger.info(f"Loaded {len(sorted_pages)} sorted pages")
     unsorted_pages = [p for p in to_sort if not p in sorted_pages]
-    logger.info(f"Loaded {len(unsorted_pages)} unsorted pages")
+    ucount = len(unsorted_pages)
+    logger.info(f"Loaded {ucount} unsorted pages")
+    if ucount > 0:
+        artists = collate_artist_pages(unsorted_pages)
+        if not disable_resolve:
+            artists = await resolve_artists(manager, artists, flush)
 
-    artists = collate_artist_pages(unsorted_pages)
-    if not disable_resolve:
-        artists = await resolve_artists(manager, artists, flush)
+        queued_artists = await enqueue_artists(manager, artists, sorted_pages)
 
-    queued_artists = await enqueue_artists(manager, artists, sorted_pages)
+        pcount = len(sorted_pages - history)
 
-    pcount = len(sorted_pages - history)
-    if pcount > 0:
         if resort:
             sorted_pages.update(history)
         crawler_cache.update(cache_slug, sorted_pages)
