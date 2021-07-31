@@ -95,7 +95,7 @@ async def resolve_query_deviantart(manager, resolve_cache, deviant):
             resolve_cache.add(deviant)
             return deviant
         except DagrException:
-            if is_deactivated(deviant, manager):
+            if await is_deactivated(deviant, manager):
                 logger.warning(f"Deviant {deviant} is deactivated")
                 resolve_cache.add(deviant, deactivated=True)
                 logger.log(
