@@ -217,6 +217,7 @@ async def sort_pages(manager, to_sort, **kwargs):
     cache_slug = 'sorted'
     history = crawler_cache.query(cache_slug)
     artists = None
+    queued_artists = []
 
     if not resort:
         sorted_pages.update(history)
