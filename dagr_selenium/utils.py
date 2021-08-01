@@ -70,7 +70,8 @@ def get_urls(config):
 
 
 async def is_deactivated(deviant, manager):
-    with manager.get_browser().get_r_context() as browser:
+    browser = manager.get_browser()
+    with browser.get_r_context():
         if not deviant.lower() in browser.current_url.lower():
             browser.open(f"https://deviantart.com/{deviant}")
         try:
