@@ -47,14 +47,14 @@ resolve_cache = DeviantResolveCache(cache)
 resolve_cache.flush()
 
 
-class waitingCount():
+class WaitingCount():
     def __init__(self):
         self.__value = 0
 
-    def inc(self):
+    def __enter__(self):
         self.__value += 1
 
-    def dec(self):
+    def __exit__(self, type, value, tb):
         self.__value -= 1
 
     @property
@@ -62,7 +62,7 @@ class waitingCount():
         return self.__value
 
 
-waiting_count = waitingCount()
+waiting_count = WaitingCount()
 
 
 async def add_to_queue(mode, deviant=None, mval=None, priority=100, full_crawl=False, resolved=False, disable_filter=False, verify_exists=None, verify_best=None, no_crawl=None, crawl_offset=None, load_more=None, dump_html=None):
@@ -190,15 +190,14 @@ async def add_bulk_galleries(request):
 
 
 async def get_item(request):
-    waiting_count.inc()
-    item = await queue.get()
-    waiting_count.dec()
-    queue.task_done()
-    params = item.params
-    logger.info(f"Dequed item {params}")
-    asyncio.create_task(remove_queue_cache_item(item.raw_params))
-    logger.info('Finished get_item request')
-    return json_response(params)
+    with waiting_count:
+        item = await queue.get()
+        queue.task_done()
+        params = item.params
+        logger.info(f"Dequed item {params}")
+        asyncio.create_task(remove_queue_cache_item(item.raw_params))
+        logger.info('Finished get_item request')
+        return json_response(params)
 
 
 async def flush_watchlist_cache():
