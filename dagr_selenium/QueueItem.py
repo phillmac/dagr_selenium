@@ -6,6 +6,7 @@ class QueueItem():
     def __init__(self, **kwargs) -> None:
         self.__raw = kwargs.copy()
         kwargs['mode'] = kwargs.get('mode', '').lower()
+        kwargs['priority'] = int(kwargs.get('priority', '100'))
         self.__params = kwargs
         self.complete = Event()
 
