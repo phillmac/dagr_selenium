@@ -7,6 +7,7 @@ from pprint import pformat
 
 from aiohttp import web
 from aiohttp.web_response import json_response
+from aiojobs.aiohttp import setup, spawn
 from dagr_revamped.lib import DagrException
 from dagr_revamped.utils import artist_from_url, convert_queue
 
@@ -71,8 +72,8 @@ async def add_to_queue(mode, deviant=None, mval=None, priority=100, full_crawl=F
     params = item.params
     logger.info(f"Adding {params} to queue")
     await queue.put(item)
-    asyncio.create_task(update_queue_cache(params))
     logger.info('Finished adding item')
+    return params
 
 
 def detect_mode(url):
@@ -124,8 +125,9 @@ async def add_url(request):
                     reason='not ok: unable to resolve deviant')
 
         mval = detect_mval(mode, url)
-        await add_to_queue(
+        params = await add_to_queue(
             mode, deviant, mval=mval, priority=priority, full_crawl=full_crawl, resolved=True)
+        asyncio.create_task(update_queue_cache(params))
         asyncio.create_task(flush_queue_cache())
         logger.info('Finished add_url request')
         return web.Response(text='ok')
@@ -174,9 +176,12 @@ async def add_items(request):
         else:
             logger.info('Deviant already resolved')
 
-        await add_to_queue(**item)
+        params = await add_to_queue(**item)
+        await spawn(request, update_queue_cache(params))
 
-    asyncio.create_task(flush_queue_cache())
+    await spawn(request, flush_queue_cache())
+
+
     logger.info('Finished add_items request')
     return json_response('ok')
 
@@ -238,6 +243,7 @@ async def query_resolve_cache(request):
 
     return json_response({'result': resolve_cache.query_raw(deviant)})
 
+
 async def flush_resolve_cache(request):
     resolve_cache.flush()
     return json_response('ok')
@@ -280,6 +286,8 @@ def run_app():
     asyncio.get_event_loop().run_until_complete(load_cached_queue())
     web.run_app(app, host='0.0.0.0', port=environ.get(
         'QUEUEMAN_LISTEN_PORT', 3005))
+
+    setup(app)
 
 
 if __name__ == '__main__':
