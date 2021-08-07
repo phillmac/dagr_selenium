@@ -178,6 +178,7 @@ async def add_items(request):
 
         params = await add_to_queue(**item)
         await spawn(request, update_queue_cache(params))
+        await asyncio.sleep(0.01)
 
     await spawn(request, flush_queue_cache())
 
