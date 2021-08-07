@@ -18,6 +18,7 @@ setup(
         'selenium==3.141.0',
         'aiofiles @ git+https://github.com/phillmac/aiofiles@0.13.0dev0',
         'aiohttp==3.7.4.post0',
+        'aiojobs==0.3.0',
         'portalocker==2.3.0'
     ],
     extras_require={

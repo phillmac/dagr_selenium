@@ -1,5 +1,6 @@
 aiofiles @ git+https://github.com/phillmac/aiofiles@0.13.0dev0
 aiohttp==3.7.4.post0
+aiojobs==0.3.0
 async-timeout==3.0.1
 beautifulsoup4==4.9.3
 dagr_revamped @ git+https://github.com/phillmac/dagr_revamped@0.2.145.dev0#egg=dagr_revamped
