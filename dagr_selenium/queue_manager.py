@@ -283,11 +283,10 @@ def run_app():
     app.router.add_post(
         '/bulk/gallery', add_bulk_galleries)
     app.router.add_post('/watchlist/items', update_watchlist_cache)
+    setup(app)
     asyncio.get_event_loop().run_until_complete(load_cached_queue())
     web.run_app(app, host='0.0.0.0', port=environ.get(
         'QUEUEMAN_LISTEN_PORT', 3005))
-
-    setup(app)
 
 
 if __name__ == '__main__':
