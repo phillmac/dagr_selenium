@@ -38,7 +38,7 @@ class LockEntry():
         self.__expiry = time() + 300
         self.__created = time()
 
-        print('Lockfile exists:', self.__lockfile.exists())
+        print(f"Lockfile {str(self.__lockfile)} exists:", self.__lockfile.exists())
 
     @property
     def details(self):
@@ -61,7 +61,7 @@ class LockEntry():
         if self.__lockfile.exists():
             self.__lockfile.unlink()
         else:
-            print('Lockfile aready removed')
+            print(f"Lockfile {str(self.__lockfile)} already removed")
 
 
 
