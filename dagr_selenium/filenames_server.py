@@ -486,16 +486,17 @@ async def write_file(request):
         reader = await request.multipart()
 
         params = dict()
-        params['size'] = 0
+        result = dict()
+        result['size'] = 0
 
         async def set_params(f):
             params.update(await f.json())
 
         async def set_content(f):
             while chunk := await field.read_chunk():
-                params['size'] += len(chunk)
-                tmp.write(chunk)
+                result['size'] += tmp.write(chunk)
             tmp.seek(0)
+            return written
 
         field_actions = {
             'params': set_params,
@@ -510,12 +511,12 @@ async def write_file(request):
 
         if path_param is None:
             print({'path': path_param, 'filename': filename,
-                   'size': params['size']})
+                   'size': result['size']})
             raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
         if filename is None:
             print({'path': path_param, 'filename': filename,
-                   'size': params['size']})
+                   'size': result['size']})
             raise JSONHTTPBadRequest(reason='not ok: filename param missing')
 
         subdir = None
@@ -530,9 +531,9 @@ async def write_file(request):
 
         t_spent = (time_ns() - t_now) / 1e6
         print('POST /file', 'path', path_param, 'filename', filename, 'size',
-              sizeof_fmt(params['size']), 'time:', '{:.2f}'.format(t_spent)+'ms')
+              sizeof_fmt(result['size']), 'time:', '{:.2f}'.format(t_spent)+'ms')
 
-        return json_response('ok')
+        return json_response({'status':'ok', 'result': result})
 
 
 async def fetch_json(request):
