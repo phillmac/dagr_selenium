@@ -496,7 +496,6 @@ async def write_file(request):
             while chunk := await field.read_chunk():
                 result['size'] += tmp.write(chunk)
             tmp.seek(0)
-            return written
 
         field_actions = {
             'params': set_params,
