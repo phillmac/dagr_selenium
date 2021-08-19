@@ -80,6 +80,7 @@ async def is_deactivated(deviant, manager):
         except NoSuchElementException:
             return False
 
+
 async def query_resolve_cache(resolve_cache, deviant):
     logger.info(f"Attempting to resolve {deviant}")
     try:
@@ -87,6 +88,7 @@ async def query_resolve_cache(resolve_cache, deviant):
     except DagrException:
         logger.warning(f"Deviant {deviant} is listed as deactivated")
         raise
+
 
 async def resolve_query_deviantart(manager, resolve_cache, deviant):
 
@@ -112,6 +114,7 @@ async def resolve_deviant(manager, deviant, resolve_cache=None):
     if cached_result := await query_resolve_cache(resolve_cache, deviant):
         return cached_result
     return await resolve_query_deviantart(manager, resolve_cache, deviant)
+
 
 async def resolve_artists(manager, artists, flush=True):
     resolved_artists = {}
@@ -156,8 +159,8 @@ async def flush_errors_to_queue(manager, session, endpoint):
             pass
         items.append(i)
     try:
-        await http_post_raw(session, endpoint, json=items)
-        await cache.remove(cache_slug, errors)
+        http_post_raw(session, endpoint, json=items)
+        cache.remove(cache_slug, errors)
     except:
         logger.exception('Error while enqueueing items')
 
@@ -288,7 +291,7 @@ async def update_bulk_galleries(crawler_cache, deviants, bulk_cache=None):
         bglen = bulk_cache.count('gallery')
 
         await bulk_cache.add([BulkCache.create_item('gallery', d)
-                    for d in deviants if not d.lower() in bulk_deviants])
+                              for d in deviants if not d.lower() in bulk_deviants])
         delta = bulk_cache.count('gallery') - bglen
         if delta > 0:
             await bulk_cache.flush()
@@ -299,12 +302,12 @@ async def update_bulk_galleries(crawler_cache, deviants, bulk_cache=None):
 
 async def queue_galleries(crawler_cache, session, endpoint, deviants, priority=100, full_crawl=False, resolved=None):
     await queue_items(crawler_cache, session=session, endpoint=endpoint, mode='gallery', deviants=deviants, priority=priority,
-                full_crawl=full_crawl, resolved=resolved)
+                      full_crawl=full_crawl, resolved=resolved)
 
 
 async def queue_favs(crawler_cache, session, endpoint, deviants, priority=100, full_crawl=False):
     await queue_items(crawler_cache, session=session, endpoint=endpoint, mode='favs',
-                deviants=deviants, priority=priority, full_crawl=full_crawl)
+                      deviants=deviants, priority=priority, full_crawl=full_crawl)
 
 
 async def sort_queue_galleries(manager, session, endpoint, pages, resort=False, flush=True):
@@ -318,9 +321,10 @@ async def sort_watchlist(manager, session, endpoint, resort=False):
     cache_slug = 'watch_urls'
     await sort_queue_galleries(manager=manager, session=session, endpoint=endpoint, pages=cache.query(cache_slug), resort=resort)
 
+
 async def sort_all(manager, session, endpoint, resort=False):
     cache = manager.get_cache()
-    pages=set()
-    for cache_slug in [ 'watch_urls', 'trash_urls']:
+    pages = set()
+    for cache_slug in ['watch_urls', 'trash_urls']:
         pages.update(cache.query(cache_slug))
     await sort_queue_galleries(manager=manager, session=session, endpoint=endpoint, pages=pages, resort=resort)
