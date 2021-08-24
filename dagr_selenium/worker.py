@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 async def fetch_item():
     try:
-        resp = session.get(queueman_fetch_url)
+        resp = session.get(queueman_fetch_url, timeout=900)
         resp.raise_for_status()
         return QueueItem(**(resp.json()))
     except:
