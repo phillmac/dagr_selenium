@@ -98,7 +98,6 @@ async def run_app():
 
         app['shutdown'] = asyncio.Event()
         app['sessions'] = sessions
-        app['work_items'] = dict()
         app['sleepmgr'] = SleepMgr(app, 300)
         app['crawler_cache'] = manager.get_cache()
 
