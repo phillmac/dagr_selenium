@@ -77,9 +77,10 @@ def detect_mval(mode, url):
 async def add_url(request):
     post_contents = await request.post()
 
-    app =request.app
+    app = request.app
     manager = app['manager']
     resolve_cache = app['resolve_cache']
+    queue = app['queue']
 
     nd_modes = app['nd_modes']
 
@@ -107,8 +108,7 @@ async def add_url(request):
                     reason='not ok: unable to resolve deviant')
 
         mval = detect_mval(mode, url)
-        params = await add_to_queue(
-            mode, deviant, mval=mval, priority=priority, full_crawl=full_crawl, resolved=True)
+        params = await add_to_queue(queue=queue, mode=mode, deviant=deviant, mval=mval, priority=priority, full_crawl=full_crawl, resolved=True)
 
         await spawn(request, update_queue_cache(app, params))
         await spawn(request, flush_queue_cache(app))
@@ -161,6 +161,7 @@ async def add_items(request):
     app = request.app
     manager = app['manager']
     resolve_cache = app['resolve_cache']
+    queue = app['queue']
 
     for item in await request.json():
         if (not 'resolved' in item) or (not item['resolved']):
@@ -175,7 +176,7 @@ async def add_items(request):
         else:
             logger.info('Deviant already resolved')
 
-        params = await add_to_queue(**item)
+        params = await add_to_queue(queue=queue, **item)
         await spawn(request, update_queue_cache(app, params))
         await asyncio.sleep(0)
 
@@ -183,6 +184,7 @@ async def add_items(request):
 
     logger.info('Finished add_items request')
     return json_response('ok')
+
 
 async def get_item(request):
     app = request.app
@@ -238,6 +240,7 @@ async def flush_resolve_cache(request):
     await resolve_cache.flush()
     return json_response('ok')
 
+
 async def bulk_get_items(request):
     bulk_cache = request.app['bulk_cache']
     items = []
@@ -245,6 +248,7 @@ async def bulk_get_items(request):
         items.append(i)
 
     return json_response(items)
+
 
 async def reload_queue(request):
     await load_cached_queue(request.app)
@@ -260,7 +264,6 @@ async def load_cached_queue(app):
     for d in loaded:
         await queue.put(d)
     logger.info(f"Done")
-
 
 
 async def start_background_tasks(app):
