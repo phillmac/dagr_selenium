@@ -197,13 +197,17 @@ async def add_bulk_galleries(request):
 
 async def get_item(request):
     with waiting_count:
-        item = await queue.get()
-        queue.task_done()
-        params = item.params
-        logger.info(f"Dequed item {params}")
-        asyncio.create_task(remove_queue_cache_item(item.raw_params))
-        logger.info('Finished get_item request')
-        return json_response(params)
+        try:
+            item = await asyncio.wait_for(queue.get(), 30)
+            queue.task_done()
+            params = item.params
+            logger.info(f"Dequed item {params}")
+            asyncio.create_task(remove_queue_cache_item(item.raw_params))
+            logger.info('Finished get_item request')
+            return json_response(params)
+        except asyncio.TimeoutError:
+            return json_response({'mode': None})
+
 
 
 async def flush_watchlist_cache():
