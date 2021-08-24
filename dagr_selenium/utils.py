@@ -3,7 +3,7 @@ import logging
 from itertools import islice
 from os import environ
 from pathlib import Path
-from pprint import pformat
+from pprint import pformat, pprint
 from time import time
 
 from dagr_revamped.DAGRCache import DAGRCache
@@ -57,10 +57,15 @@ def get_urls(config):
     fncache_update_url = environ.get('FNCACHE_UPDATE_URL', None) or config.get(
         'dagr.plugins.selenium', 'fncache_update_url', key_errors=False) or 'http://127.0.0.1:3005/items'
 
+    queman_waiting_url = environ.get('QUEUEMAN_WAITING_URL', None) or config.get(
+        'dagr.plugins.selenium', 'queueman_waiting_url', key_errors=False) or 'http://127.0.0.1:3005/waiting'
+
+
     urls = {
         'fetch':            queueman_fetch_url,
         'enqueue':          queueman_enqueue_url,
-        'fncache_update':   fncache_update_url
+        'fncache_update':   fncache_update_url,
+        'waiting':          queman_waiting_url
     }
 
     logger.info('Queman Urls:')
@@ -139,7 +144,7 @@ async def resolve_artists(manager, artists, flush=True):
                     continue
 
     if flush:
-        resolve_cache.flush()
+        await resolve_cache.flush()
 
     return resolved_artists
 
@@ -168,6 +173,7 @@ async def flush_errors_to_queue(manager, session, endpoint):
 def collate_artist_pages(pages):
     artists = {}
     for p in pages:
+        # pprint(p)
         _artist_url_p, artist_name, _shortname = artist_from_url(p)
         if not artist_name in artists:
             artists[artist_name] = []

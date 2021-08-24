@@ -8,44 +8,19 @@ from pprint import pformat
 from aiohttp import web
 from aiohttp.web_response import json_response
 from aiojobs.aiohttp import setup, spawn
+from dagr_revamped.DAGRManager import DAGRManager
 from dagr_revamped.lib import DagrException
 from dagr_revamped.utils import artist_from_url, convert_queue
+from dotenv import load_dotenv
 
+from dagr_selenium.BulkCache import BulkCache
 from dagr_selenium.DeviantResolveCache import DeviantResolveCache
-from dagr_selenium.functions import (config, load_bulk, manager,
-                                     update_bulk_galleries)
 from dagr_selenium.JSONHTTPBadRequest import JSONHTTPBadRequest
 from dagr_selenium.QueueItem import QueueItem
-from dagr_selenium.utils import resolve_deviant
-
-queue = asyncio.PriorityQueue()
-
-queue_lock = asyncio.Lock()
-
-env_level = environ.get('dagr.queueman.logging.level', None)
-level_mapped = config.map_log_level(
-    int(env_level)) if not env_level is None else None
-
-manager.set_mode('queueman')
-
-manager.init_logging(level_mapped)
+from dagr_selenium.SleepMgr import SleepMgr
+from dagr_selenium.utils import check_stop_file, resolve_deviant
 
 logger = logging.getLogger(__name__)
-
-regexes = {k: re.compile(v)
-           for k, v in config.get('deviantart.regexes').items()}
-
-regex_priorities = config.get('deviantart.regexes.priorities')
-
-regex_max_priority = config.get('deviantart.regexes.params', 'maxpriority')
-
-nd_modes = config.get('deviantart', 'ndmodes').split(',')
-
-queue_slug = 'queue'
-watchlist_slug = 'watch_urls'
-cache = manager.get_cache()
-resolve_cache = DeviantResolveCache(cache)
-resolve_cache.flush()
 
 
 class WaitingCount():
@@ -63,10 +38,7 @@ class WaitingCount():
         return self.__value
 
 
-waiting_count = WaitingCount()
-
-
-async def add_to_queue(mode, deviant=None, mval=None, priority=100, full_crawl=False, resolved=False, disable_filter=False, verify_exists=None, verify_best=None, no_crawl=None, crawl_offset=None, load_more=None, dump_html=None):
+async def add_to_queue(queue, mode, deviant=None, mval=None, priority=100, full_crawl=False, resolved=False, disable_filter=False, verify_exists=None, verify_best=None, no_crawl=None, crawl_offset=None, load_more=None, dump_html=None):
     item = QueueItem(mode=mode, deviant=deviant, mval=mval, priority=priority,          full_crawl=full_crawl, resolved=resolved, disable_filter=disable_filter,
                      verify_exists=verify_exists, verify_best=verify_best, no_crawl=no_crawl, crawl_offset=crawl_offset, load_more=load_more, dump_html=dump_html)
     params = item.params
@@ -76,7 +48,11 @@ async def add_to_queue(mode, deviant=None, mval=None, priority=100, full_crawl=F
     return params
 
 
-def detect_mode(url):
+def detect_mode(app, url):
+    regex_max_priority = app['regex_max_priority']
+    regexes = app['regexes']
+    regex_priorities = app['regex_priorities']
+
     for p in range(regex_max_priority):
         logger.log(level=15, msg=f"Trying regex priority {p}")
         for mode in regexes:
@@ -101,6 +77,12 @@ def detect_mval(mode, url):
 async def add_url(request):
     post_contents = await request.post()
 
+    app =request.app
+    manager = app['manager']
+    resolve_cache = app['resolve_cache']
+
+    nd_modes = app['nd_modes']
+
     url = post_contents.get('url')
     priority = post_contents.get('priority', 100)
     full_crawl = post_contents.get('full_crawl', False)
@@ -110,7 +92,7 @@ async def add_url(request):
         return JSONHTTPBadRequest(reason='not ok: url missing')
 
     try:
-        mode = detect_mode(url)
+        mode = detect_mode(app, url)
         if mode is None:
             raise NotImplementedError(f"Unable to get mode for url {url}")
 
@@ -127,8 +109,10 @@ async def add_url(request):
         mval = detect_mval(mode, url)
         params = await add_to_queue(
             mode, deviant, mval=mval, priority=priority, full_crawl=full_crawl, resolved=True)
-        asyncio.create_task(update_queue_cache(params))
-        asyncio.create_task(flush_queue_cache())
+
+        await spawn(request, update_queue_cache(app, params))
+        await spawn(request, flush_queue_cache(app))
+
         logger.info('Finished add_url request')
         return web.Response(text='ok')
     except NotImplementedError:
@@ -136,33 +120,48 @@ async def add_url(request):
         return JSONHTTPBadRequest(reason='not ok: unable to handle url')
 
 
-async def update_queue_cache(params):
+async def update_queue_cache(app, params):
+    queue_lock = app['queue_lock']
+    crawler_cache = app['crawler_cache']
+    queue_slug = app['queue_slug']
     async with queue_lock:
         try:
-            cache.update(queue_slug, params)
+            crawler_cache.update(queue_slug, params)
         except:
             logger.exception('Error while updating queue cache')
 
 
-async def flush_queue_cache():
+async def flush_queue_cache(app):
+    queue_lock = app['queue_lock']
+    crawler_cache = app['crawler_cache']
+    queue_slug = app['queue_slug']
+
     async with queue_lock:
         try:
-            cache.flush(queue_slug)
+            crawler_cache.flush(queue_slug)
         except:
             logger.exception('Error while flushing queue cache')
 
 
-async def remove_queue_cache_item(params):
+async def remove_queue_cache_item(app, params):
+    queue_lock = app['queue_lock']
+    crawler_cache = app['crawler_cache']
+    queue_slug = app['queue_slug']
+
     logger.info('Waiting for queue lock')
     async with queue_lock:
         logger.info(f"Removing {params} from queue cache")
         try:
-            cache.remove(queue_slug, params)
+            crawler_cache.remove(queue_slug, params)
         except:
             logger.exception('Error while removing item from cache')
 
 
 async def add_items(request):
+    app = request.app
+    manager = app['manager']
+    resolve_cache = app['resolve_cache']
+
     for item in await request.json():
         if (not 'resolved' in item) or (not item['resolved']):
             try:
@@ -177,54 +176,38 @@ async def add_items(request):
             logger.info('Deviant already resolved')
 
         params = await add_to_queue(**item)
-        await spawn(request, update_queue_cache(params))
-        await asyncio.sleep(0.01)
+        await spawn(request, update_queue_cache(app, params))
+        await asyncio.sleep(0)
 
-    await spawn(request, flush_queue_cache())
-
+    await spawn(request, flush_queue_cache(app))
 
     logger.info('Finished add_items request')
     return json_response('ok')
 
-
-async def add_bulk_galleries(request):
-    try:
-        added = update_bulk_galleries(await request.json())
-        return json_response({'status': 'ok', 'added': added})
-    except:
-        logger.exception('Unable to add to bulk galleries list')
-
-
 async def get_item(request):
+    app = request.app
+    queue = app['queue']
+    waiting_count = app['waiting_count']
     with waiting_count:
         try:
             item = await asyncio.wait_for(queue.get(), 30)
             queue.task_done()
             params = item.params
             logger.info(f"Dequed item {params}")
-            asyncio.create_task(remove_queue_cache_item(item.raw_params))
+            await spawn(request, remove_queue_cache_item(app, item.raw_params))
             logger.info('Finished get_item request')
             return json_response(params)
         except asyncio.TimeoutError:
+            logger.log(level=15, msg='Timout waiting to deque work item')
             return json_response({'mode': None})
-
-
-
-async def flush_watchlist_cache():
-    cache.flush(watchlist_slug)
-
-
-async def update_watchlist_cache(request):
-    urls = await request.json()
-    cache.update(watchlist_slug, urls)
-    asyncio.create_task(flush_watchlist_cache())
-    return json_response('ok', headers={
-        'Access-Control-Allow-Origin': '*'
-    })
 
 
 async def resolve(request):
     params = await request.json()
+
+    app = request.app
+    manager = app['manager']
+    resolve_cache = app['resolve_cache']
 
     deviant = params.get('deviant', None)
 
@@ -240,6 +223,7 @@ async def resolve(request):
 
 async def query_resolve_cache(request):
     params = await request.json()
+    resolve_cache = request.app['resolve_cache']
 
     deviant = params.get('deviant', None)
 
@@ -250,24 +234,75 @@ async def query_resolve_cache(request):
 
 
 async def flush_resolve_cache(request):
-    resolve_cache.flush()
+    resolve_cache = request.app['resolve_cache']
+    await resolve_cache.flush()
     return json_response('ok')
 
+async def bulk_get_items(request):
+    bulk_cache = request.app['bulk_cache']
+    items = []
+    async for i in bulk_cache.get_items():
+        items.append(i)
+
+    return json_response(items)
 
 async def reload_queue(request):
-    await load_cached_queue()
+    await load_cached_queue(request.app)
     return json_response('ok')
 
 
-async def load_cached_queue():
-    loaded = [QueueItem(**dict(i)) for i in cache.query(queue_slug)]
+async def load_cached_queue(app):
+    crawler_cache = app['crawler_cache']
+    queue = app['queue']
+    queue_slug = app['queue_slug']
+    loaded = [QueueItem(**dict(i)) for i in crawler_cache.query(queue_slug)]
     logger.info(f"Adding {len(loaded)} items to queue")
     for d in loaded:
         await queue.put(d)
     logger.info(f"Done")
 
 
-def run_app():
+
+async def start_background_tasks(app):
+    pass
+
+
+async def cleanup_background_tasks(app):
+    for t in app['tasks']:
+        t.cancel()
+
+
+async def cleanup_caches(app):
+    sessions_cache = app['sessions']
+
+    for _k, v in app['sessions'].items():
+        v.close()
+
+    sessions_cache.clear()
+
+    app['crawler_cache'].flush()
+
+
+async def run_app():
+    load_dotenv()
+
+    manager = DAGRManager()
+    config = manager.get_config()
+
+    env_level = environ.get('dagr.queueman.logging.level', None)
+    level_mapped = config.map_log_level(
+        int(env_level)) if not env_level is None else None
+
+    manager.set_mode('queueman')
+    manager.init_logging(level_mapped)
+
+    crawler_cache = manager.get_cache()
+    resolve_cache = DeviantResolveCache(crawler_cache)
+    bulk_cache = BulkCache(crawler_cache)
+
+    queue = asyncio.PriorityQueue()
+    waiting_count = WaitingCount()
+
     app = web.Application()
     app.router.add_get('/ping', lambda: json_response('pong'))
     app.router.add_post('/reload', reload_queue)
@@ -282,18 +317,68 @@ def run_app():
     app.router.add_get(
         '/waiting', lambda request: json_response({'waiting': waiting_count.value}))
     app.router.add_get(
-        '/contents', lambda request: json_response([qi for qi in cache.query(queue_slug)]))
+        '/contents', lambda request: json_response([*app['crawler_cache'].query(app['queue_slug'])]))
     app.router.add_get(
-        '/bulk', lambda request: json_response(convert_queue(config, load_bulk('.dagr_bulk.json'))))
-    app.router.add_post(
-        '/bulk/gallery', add_bulk_galleries)
-    app.router.add_post('/watchlist/items', update_watchlist_cache)
+        '/bulk/all', bulk_get_items)
+
     setup(app)
-    asyncio.get_event_loop().run_until_complete(load_cached_queue())
-    web.run_app(app, host='0.0.0.0', port=environ.get(
+
+    app['queue_slug'] = 'queue'
+
+    app['tasks'] = {}
+    app['manager'] = manager
+    app['queue'] = queue
+    app['queue_lock'] = asyncio.Lock()
+    app['shutdown'] = asyncio.Event()
+    app['sleepmgr'] = SleepMgr(app, 300)
+    app['waiting_count'] = waiting_count
+    app['crawler_cache'] = crawler_cache
+    app['resolve_cache'] = resolve_cache
+    app['bulk_cache'] = bulk_cache
+    app['dagr_config'] = config
+
+    app['regexes'] = {k: re.compile(v)
+                      for k, v in config.get('deviantart.regexes').items()}
+
+    app['regex_priorities'] = config.get('deviantart.regexes.priorities')
+
+    app['regex_max_priority'] = config.get(
+        'deviantart.regexes.params', 'maxpriority')
+
+    app['nd_modes'] = config.get('deviantart', 'ndmodes').split(',')
+
+    app.on_startup.append(start_background_tasks)
+    app.on_cleanup.append(cleanup_background_tasks)
+    app.on_cleanup.append(cleanup_caches)
+
+    await load_cached_queue(app)
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', port=environ.get(
         'QUEUEMAN_LISTEN_PORT', 3005))
+    await site.start()
+
+    names = sorted(str(s.name) for s in runner.sites)
+    print(
+        "======== Running on {} ========\n"
+        "(Press CTRL+C to quit)".format(", ".join(names))
+    )
+
+    while not app['shutdown'].is_set() and not await check_stop_file(manager, 'STOP_QUEUEMAN'):
+        await resolve_cache.flush()
+        await bulk_cache.flush()
+        await app['sleepmgr'].sleep()
+
+    print('Shutting down')
+
+    await runner.cleanup()
 
 
 if __name__ == '__main__':
-    with manager.get_dagr():
-        run_app()
+    try:
+        asyncio.run(run_app())
+    except KeyboardInterrupt:
+        print('KeyboardInterrupt')
+
+    logging.shutdown()

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from time import time
 from random import randint
@@ -41,7 +42,7 @@ class DeviantResolveCache():
         logger.info('Resolve cache miss')
         return None
 
-    def prune(self):
+    async def prune(self):
         t_now = time()
         prune_items = set()
         for e in self.__storage.query(self.__slug):
@@ -52,6 +53,7 @@ class DeviantResolveCache():
                 if deviant in self.__contents:
                     del self.__contents[deviant]
                 logger.info(f"Pruning expired {e} entry")
+            await asyncio.sleep(0)
         self.remove(prune_items)
 
     def add(self, deviant, deactivated=False):
@@ -82,8 +84,8 @@ class DeviantResolveCache():
                 remove_items.update([e])
         self.remove(remove_items)
 
-    def flush(self):
+    async def flush(self):
         self.__load_contents()
-        self.prune()
+        await self.prune()
         self.__storage.flush(self.__slug)
 

@@ -279,7 +279,7 @@ def sort_pages(to_sort, resort=False, queued_only=True, flush=True, disable_reso
         try:
             if flush:
                 crawler_cache.flush(cache_slug)
-                resolve_cache.flush()
+                # resolve_cache.flush() # needs to be async
         except:
             logger.exception('Error while flushing cachees')
         logger.info(f"Added {pcount} pages to sorted list")
