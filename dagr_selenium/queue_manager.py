@@ -114,7 +114,7 @@ async def add_url(request):
         await spawn(request, flush_queue_cache(app))
 
         logger.info('Finished add_url request')
-        return web.Response(text='ok')
+        return json_response('ok')
     except NotImplementedError:
         logger.warning('Unable to handle url:', exc_info=True)
         return JSONHTTPBadRequest(reason='not ok: unable to handle url')
@@ -255,6 +255,11 @@ async def reload_queue(request):
     return json_response('ok')
 
 
+def shutdown_app(request):
+    request.app['shutdown'].set()
+    request.app['sleepmgr'].cancel_sleep()
+    return json_response('ok')
+
 async def load_cached_queue(app):
     crawler_cache = app['crawler_cache']
     queue = app['queue']
@@ -307,7 +312,7 @@ async def run_app():
     waiting_count = WaitingCount()
 
     app = web.Application()
-    app.router.add_get('/ping', lambda: json_response('pong'))
+    app.router.add_get('/ping', lambda request: json_response('pong'))
     app.router.add_post('/reload', reload_queue)
     app.router.add_post('/url', add_url)
     app.router.add_get('/item', get_item)
@@ -323,6 +328,7 @@ async def run_app():
         '/contents', lambda request: json_response([*app['crawler_cache'].query(app['queue_slug'])]))
     app.router.add_get(
         '/bulk/all', bulk_get_items)
+    app.router.add_post('/shutdown', shutdown_app)
 
     setup(app)
 
