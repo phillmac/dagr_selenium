@@ -6,47 +6,19 @@ from time import sleep
 
 import requests
 
-from tests_setup import (build_selenium, create_net, run_chrome, run_fnserver,
-                         setUpTestCase, tearDownTestCase)
+from tests_setup import (build_selenium, chrome_container_ctx,
+                         chrome_network_ctx, run_fnserver, setUpTestCase,
+                         tearDownTestCase, test_containers_ctx, wait_ready)
 
 
-@contextmanager
-def chrome_network_ctx():
-    chrome_net = create_net('chrome')
-    try:
-        yield chrome_net
-    finally:
-        chrome_net.remove()
-
-
-@contextmanager
-def chrome_container_ctx():
-    chrome_container = run_chrome()
-    try:
-        yield chrome_container
-    finally:
-        chrome_container.stop()
-        chrome_container.remove()
-
-
-def wait_ready():
-    try:
-        resp = requests.get('http://0.0.0.0:3002/ping')
-        resp.raise_for_status()
-        if not resp.json == 'pong':
-            raise Exception('Invalid reply')
-    except (requests.exceptions.ConnectionError):
-        logging.info('Fn server not ready')
-        sleep(0.5)
-
-
-class TestQueueMan(unittest.TestCase):
+class TestFNServer(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.io = None
         self.container = None
         self.results_dir = None
+        self.container_port = None
 
     def containerLogs(self):
         for log_item in self.container.logs(stdout=True, stderr=True, stream=True, follow=False):
@@ -54,29 +26,15 @@ class TestQueueMan(unittest.TestCase):
 
     def setUp(self):
         setUpTestCase(self, run_fnserver)
-        selenium_dir = self.results_dir.joinpath('.selenium')
-        if not selenium_dir.exists():
-            selenium_dir.mkdir()
-        sleep(3)
-        # wait_ready()
 
-    def test_queue_items(self):
-        result = None
         try:
-            resp = requests.post('http://0.0.0.0:3005/items',
-                                    json=[
-                                        {"mode": "gallery", "deviant": "test-acc"},
-                                        {"mode": "favs", "deviant": "test-acc"}
-                                ])
-            resp.raise_for_status()
-            result = resp.json()
-        except:
-            logging.exception('Failed to queue items')
+            wait_ready(self.container_port)
+        except requests.exceptions.HTTPError:
             self.containerLogs()
             raise
 
-        self.assertTrue(result == 'ok')
-
+    def test_mkdir(self):
+        pass
 
     def tearDown(self):
         tearDownTestCase(self)
@@ -86,4 +44,5 @@ if __name__ == '__main__':
     build_selenium()
     with chrome_network_ctx():
         with chrome_container_ctx():
-            unittest.main()
+            with test_containers_ctx():
+                unittest.main()
