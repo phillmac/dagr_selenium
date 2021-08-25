@@ -23,30 +23,6 @@ def chunk(it, size):
     return iter(lambda: tuple(islice(it, size)), ())
 
 
-async def check_stop_file(manager, fname=None):
-    if fname is None:
-        mode = manager.mode
-        if not mode is None:
-            fname = f"STOP_{mode.upper()}"
-    try:
-        filenames = [fname, f"{manager.get_host_mode()}.dagr.stop"]
-        foldernames = ['~', manager.get_config().output_dir]
-
-        for dn in foldernames:
-            dirp = dn if isinstance(dn, Path) else Path(
-                dn).expanduser().resolve()
-            for fp in filenames:
-                if fp is not None:
-                    filep = dirp.joinpath(fp)
-                    if filep.exists():
-                        logger.info(F"Detected stop file {filep} exists")
-                        return True
-        return False
-    except:
-        logger.exception("Unable to check stop file")
-        return False
-
-
 def get_urls(config):
     queueman_fetch_url = environ.get('QUEUEMAN_FETCH_URL', None) or config.get(
         'dagr.plugins.selenium', 'queueman_fetch_url', key_errors=False) or 'http://127.0.0.1:3005/item'

@@ -18,7 +18,7 @@ from dagr_selenium.DeviantResolveCache import DeviantResolveCache
 from dagr_selenium.JSONHTTPBadRequest import JSONHTTPBadRequest
 from dagr_selenium.QueueItem import QueueItem
 from dagr_selenium.SleepMgr import SleepMgr
-from dagr_selenium.utils import check_stop_file, resolve_deviant
+from dagr_selenium.utils import resolve_deviant
 
 logger = logging.getLogger(__name__)
 
@@ -374,7 +374,7 @@ async def run_app():
         "(Press CTRL+C to quit)".format(", ".join(names))
     )
 
-    while not app['shutdown'].is_set() and not await check_stop_file(manager, 'STOP_QUEUEMAN'):
+    while not app['shutdown'].is_set():
         await resolve_cache.flush()
         await bulk_cache.flush()
         await app['sleepmgr'].sleep()

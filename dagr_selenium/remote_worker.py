@@ -12,7 +12,7 @@ from dagr_revamped.utils import get_remote_io
 from dotenv import load_dotenv
 
 from dagr_selenium.JSONHTTPBadRequest import JSONHTTPBadRequest
-from dagr_selenium.utils import (check_stop_file, flush_errors_to_queue,
+from dagr_selenium.utils import (flush_errors_to_queue,
                                  get_urls)
 
 from .QueueItem import QueueItem
@@ -125,7 +125,7 @@ async def run_app():
     await site.start()
 
     logger.info("Worker ready")
-    while not app['shutdown'].is_set() and not check_stop_file(manager, 'STOP_REMOTE_WORKER'):
+    while not app['shutdown'].is_set():
         logger.info("Fetching work item")
         item = await fetch_item(app)
         if not item is None:

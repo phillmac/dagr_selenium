@@ -11,7 +11,7 @@ from dagr_revamped.TCPKeepAliveSession import TCPKeepAliveSession
 from dotenv import load_dotenv
 
 from dagr_selenium.SleepMgr import SleepMgr
-from dagr_selenium.utils import check_stop_file, get_urls, sort_all
+from dagr_selenium.utils import get_urls, sort_all
 
 print('Dagr version:', dagr_revamped_version)
 
@@ -116,7 +116,7 @@ async def run_app():
             "(Press CTRL+C to quit)".format(", ".join(names))
         )
 
-        while not app['shutdown'].is_set() and not await check_stop_file(manager, 'STOP_REMOTE_MON'):
+        while not app['shutdown'].is_set():
             await app['sleepmgr'].sleep()
             await sort_all(manager, queueman_session, enqueue_url)
 

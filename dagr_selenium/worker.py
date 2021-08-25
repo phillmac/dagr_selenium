@@ -2,12 +2,11 @@ import asyncio
 import logging
 from os import environ
 from pprint import pformat
-from dagr_revamped.utils import sleep
 
 from selenium.common.exceptions import (InvalidSessionIdException,
                                         WebDriverException)
 
-from .functions import (check_stop_file, config, flush_errors_to_queue,
+from .functions import (config, flush_errors_to_queue,
                         manager, queueman_fetch_url, session)
 from .QueueItem import QueueItem
 
@@ -19,6 +18,9 @@ manager.set_mode('worker')
 manager.init_logging(level_mapped)
 
 logger = logging.getLogger(__name__)
+
+stop_event = asyncio.Event()
+
 
 async def fetch_item():
     try:
@@ -50,14 +52,13 @@ async def process_item(item):
         except:
             pass
 
-
 async def __main__():
-    manager.set_stop_check(check_stop_file)
+    manager.set_stop_check(stop_event.is_set)
     with manager.get_dagr() as dagr:
         logger.info('Flushing previous errors')
         flush_errors_to_queue()
         logger.info("Worker ready")
-        while manager.session_ok and not check_stop_file('STOP_WORKER'):
+        while manager.session_ok:
             logger.info("Fetching work item")
             item = await fetch_item()
             if not item is None:
@@ -68,7 +69,7 @@ async def __main__():
                 dagr.reset_stats()
             else:
                 logger.warning('Unable to fetch workitem')
-                sleep(30)
+                await asyncio.sleep(30)
 
 
 if __name__ == '__main__':
