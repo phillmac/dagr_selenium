@@ -7,7 +7,6 @@ from dagr_revamped.utils import sleep
 from selenium.common.exceptions import (InvalidSessionIdException,
                                         WebDriverException)
 
-# from dagr_revamped.DAGRDeviationProcessorFNS import DAGRDeviationProcessorFNS
 from .functions import (check_stop_file, config, flush_errors_to_queue,
                         manager, queueman_fetch_url, session)
 from .QueueItem import QueueItem
