@@ -200,7 +200,7 @@ async def get_item(request):
             logger.info('Finished get_item request')
             return json_response(params)
         except asyncio.TimeoutError:
-            logger.log(level=15, msg='Timout waiting to deque work item')
+            logger.log(level=15, msg='Timout waiting to dequeue work item')
             return json_response({'mode': None})
 
 
