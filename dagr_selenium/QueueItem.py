@@ -5,7 +5,8 @@ from asyncio import Event
 class QueueItem():
     def __init__(self, **kwargs) -> None:
         self.__raw = kwargs.copy()
-        kwargs['mode'] = kwargs.get('mode', '').lower()
+        mode = kwargs.get('mode', '')
+        kwargs['mode'] = mode.lower if isinstance(mode, str) else mode
         kwargs['priority'] = int(kwargs.get('priority', '100'))
         self.__params = kwargs
         self.complete = Event()
