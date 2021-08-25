@@ -28,9 +28,15 @@ async def __main__():
     bulk_cache = BulkCache(manager.get_cache())
     with TCPKeepAliveSession() as session:
         async for item in bulk_cache.get_items():
-            while session.get(waiting_url).json()['waiting'] <= 1:
+            waiting = 0
+            while waiting <= 1:
+                try:
+                    waiting = session.get(waiting_url).json()['waiting']
+                except:
+                    logger.exception('Unable to get waiting count')
                 await asyncio.sleep(30)
-            logger.info(f"{item.get('mode')} {item.get('deviant')} {item.get('mval')}")
+            logger.info(
+                f"{item.get('mode')} {item.get('deviant')} {item.get('mval')}")
             try:
                 http_post_raw(session, enqueue_url, json=[item])
             except HTTPError:
