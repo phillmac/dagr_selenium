@@ -874,6 +874,7 @@ async def cleanup_caches(app):
 
 async def run_app():
     app = web.Application(client_max_size=1024**2 * 100)
+    app.router.add_get('/ping', lambda request: json_response('pong'))
     app.router.add_get('/json', fetch_json)
     app.router.add_get('/file_contents', fetch_contents)
     app.router.add_get('/file_contents_b', fetch_contents_b)
@@ -915,7 +916,8 @@ async def run_app():
 
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, '0.0.0.0', 3002)
+    site = web.TCPSite(runner, '0.0.0.0', port=environ.get(
+        'FILENAME_SERVER_LISTEN_PORT', 3002))
     await site.start()
 
     names = sorted(str(s.name) for s in runner.sites)
