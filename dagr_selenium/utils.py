@@ -190,6 +190,7 @@ async def enqueue_artists(manager, artists, sorted_pages=set()):
                 sorted_pages.update(pages)
         except DagrCacheLockException:
             pass
+        await asyncio.sleep(0)
     logger.info(f"Sorted {batch_enqueued} pages")
     return queued_artists
 
