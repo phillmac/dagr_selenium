@@ -116,6 +116,7 @@ async def resolve_artists(manager, artists, flush=True):
                 try:
                     resolved = await resolve_query_deviantart(manager, resolve_cache, k)
                     resolved_artists[resolved] = v
+                    await asyncio.sleep(0)
                 except DagrException:
                     continue
 
