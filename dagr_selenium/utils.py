@@ -263,6 +263,7 @@ async def queue_items(crawler_cache, session, endpoint,  mode, deviants, priorit
                 crawler_cache.remove(cache_slug, deviantschunk)
             except:
                 logger.exception('Error while pruning pending items cache')
+        await asyncio.sleep(0)
 
 
 async def update_bulk_galleries(crawler_cache, deviants, bulk_cache=None):
