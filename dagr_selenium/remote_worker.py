@@ -55,6 +55,7 @@ async def process_item(app, manager, item):
 
 def shutdown_app(request):
     request.app['shutdown'].set()
+    request.app['sleepmgr'].cancel_sleep()
     return json_response('ok')
 
 

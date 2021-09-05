@@ -20,6 +20,7 @@ async def flush_cache(cache, slug):
 
 def shutdown_app(request):
     request.app['shutdown'].set()
+    request.app['sleepmgr'].cancel_sleep()
     return json_response('ok')
 
 async def update_cache(request, slug):
