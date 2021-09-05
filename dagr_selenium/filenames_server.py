@@ -605,22 +605,33 @@ async def rm_dir(request):
     if path_param is None:
         raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
-    if dir_name is None:
-        raise JSONHTTPBadRequest(reason='not ok: dir_name param missing')
+    # if dir_name is None:
+    #     raise JSONHTTPBadRequest(reason='not ok: dir_name param missing')
 
     subdir = None
 
     try:
-        subdir = await get_subdir(request.app,
-                                  PurePosixPath(path_param).joinpath(PurePosixPath(dir_name).name))
+        subdir = await get_subdir(request.app, path_param)
     except StopAsyncIteration:
-        raise JSONHTTPBadRequest(reason='not ok: path does not exist')
+        if dir_name is None:
+            dir_item = PosixPath(path_param)
+            if not str(PosixPath.cwd()) == os_path.commonpath((Path.cwd(), await abspath(dir_item))):
+                raise JSONHTTPBadRequest(
+                    reason='not ok: bad relative rm dir path')
+        else:
+            raise JSONHTTPBadRequest(reason='not ok: path does not exist')
+    if subdir:
+        dir_item = subdir if dir_name is None else subdir.joinpath(
+            PurePosixPath(dir_name))
+        if not str(subdir) == os_path.commonpath((subdir, await abspath(dir_item))):
+            raise JSONHTTPBadRequest(
+                reason='not ok: bad relative rm dir path')
 
-    if await exists(subdir):
-        await rmdir(subdir)
-
-        return json_response('ok')
-    raise JSONHTTPBadRequest(reason='not ok: filename does not exist')
+    try:
+        await rmdir(dir_item)
+    except FileNotFoundError:
+        raise JSONHTTPBadRequest(reason='not ok: dir does not exist')
+    return json_response('ok')
 
 
 async def query_lock(request):
