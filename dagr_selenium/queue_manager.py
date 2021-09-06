@@ -164,7 +164,7 @@ async def add_items(request):
     queue = app['queue']
 
     for item in await request.json():
-        if (not 'resolved' in item) or (not item['resolved']):
+        if 'deviant' in item and (( not 'resolved' in item) or (not item['resolved'])):
             try:
                 item['deviant'] = await resolve_deviant(
                     manager, item['deviant'], resolve_cache)

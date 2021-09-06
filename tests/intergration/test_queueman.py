@@ -86,7 +86,8 @@ class TestQueueMan(unittest.TestCase):
             resp = requests.post(endpoint,
                                  json=[
                                      {"mode": "gallery", "deviant": "test-acc"},
-                                     {"mode": "favs", "deviant": "test-acc"}
+                                     {"mode": "favs", "deviant": "test-acc"},
+                                     {"mode": "tag", "mval": "landscape"}
                                  ])
             resp.raise_for_status()
             result = resp.json()
@@ -101,8 +102,9 @@ class TestQueueMan(unittest.TestCase):
         results = []
         endpoint = f"http://0.0.0.0:{self.container_port}/url"
         urls = [
-            'https://www.deviantart.com/test-acc/gallery/all'
-            'https://www.deviantart.com/test-acc/favourites/all'
+            'https://www.deviantart.com/test-acc/gallery/all',
+            'https://www.deviantart.com/test-acc/favourites/all',
+            'https://www.deviantart.com/tag/landscape'
         ]
         try:
             for u in urls:
