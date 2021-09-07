@@ -366,11 +366,11 @@ def dump_callback(page, content, cache_io, load_more=None):
         logger.exception('Error while dumping html')
 
 
-def rip(mode, deviant, mval=None, full_crawl=False, disable_filter=False, crawl_offset=None, no_crawl=None, dump_html=None, disable_resolve=None, resolved=None, **kwargs):
+def rip(mode, deviant=None, mval=None, full_crawl=False, disable_filter=False, crawl_offset=None, no_crawl=None, dump_html=None, disable_resolve=None, resolved=None, **kwargs):
     if crawl_offset:
         logger.log(level=15, msg=f"crawl_offset: {crawl_offset}")
 
-    if not resolved and not disable_resolve:
+    if not deviant is None and not resolved and not disable_resolve:
         try:
             deviant = resolve_deviant(deviant)
         except DagrException:
