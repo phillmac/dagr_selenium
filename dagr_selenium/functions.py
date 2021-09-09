@@ -47,7 +47,6 @@ queueman_enqueue_url = environ.get('QUEUEMAN_ENQUEUE_URL', None) or config.get(
     'dagr.plugins.selenium', 'queueman_enqueue_url', key_errors=False) or 'http://127.0.0.1:3005/items'
 
 
-
 logger.info('Queman Urls:')
 logger.info(pformat({
     'queueman_fetch_url':  queueman_fetch_url,
@@ -509,7 +508,7 @@ def flush_errors_to_queue():
     for e in errors:
         i = dict(e)
         try:
-            if (not 'resolved' in i) or (not i['resolved']):
+            if ('deviant' in i and i['deviant'] is not None) and (not 'resolved' in i) or (not i['resolved']):
                 i['deviant'] = resolve_deviant(i['deviant'])
                 i['resolved'] = True
         except:
@@ -593,7 +592,6 @@ def sort_queue_galleries(pages, resort=False, flush=True):
     deviants_sorted = sort_pages(pages, resort=resort, flush=flush)
     update_bulk_galleries(deviants_sorted)
     queue_galleries(deviants_sorted, priority=50, resolved=True)
-
 
 
 def check_stop_file(fname=None):

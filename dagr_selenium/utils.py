@@ -134,7 +134,7 @@ async def flush_errors_to_queue(manager, session, endpoint):
     for e in errors:
         i = dict(e)
         try:
-            if (not 'resolved' in i) or (not i['resolved']):
+            if ('deviant' in i and i['deviant'] is not None) and (not 'resolved' in i) or (not i['resolved']):
                 i['deviant'] = await resolve_deviant(manager, i['deviant'])
                 i['resolved'] = True
         except:
