@@ -349,6 +349,7 @@ async def run_app():
     app['resolve_cache'] = resolve_cache
     app['bulk_cache'] = bulk_cache
     app['dagr_config'] = config
+    app['sessions'] = dict()
 
     app['regexes'] = {k: re.compile(v)
                       for k, v in config.get('deviantart.regexes').items()}
