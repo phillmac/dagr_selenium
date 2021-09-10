@@ -97,7 +97,7 @@ async def add_url(request):
         if mode is None:
             raise NotImplementedError(f"Unable to get mode for url {url}")
 
-        if not mode in nd_modes:
+        if mode not in nd_modes:
             _artist_url_p, deviant, _shortname = artist_from_url(url, mode)
             if deviant is None:
                 return JSONHTTPBadRequest(reason='not ok: deviant missing')
@@ -162,19 +162,23 @@ async def add_items(request):
     manager = app['manager']
     resolve_cache = app['resolve_cache']
     queue = app['queue']
+    nd_modes = app['nd_modes']
+
 
     for item in await request.json():
-        if 'deviant' in item and (( not 'resolved' in item) or (not item['resolved'])):
-            try:
-                item['deviant'] = await resolve_deviant(
-                    manager, item['deviant'], resolve_cache)
-            except DagrException:
-                raise JSONHTTPBadRequest(
-                    reason='not ok: unable to resolve deviant')
+        if item['mode'] not in nd_modes:
+            if (( not 'resolved' in item) or (not item['resolved'])):
+                try:
+                    item['deviant'] = await resolve_deviant(
+                        manager, item['deviant'], resolve_cache)
+                except DagrException:
+                    raise JSONHTTPBadRequest(
+                        reason='not ok: unable to resolve deviant')
 
-            item['resolved'] = True
-        else:
-            logger.info('Deviant already resolved')
+                item['resolved'] = True
+
+            else:
+                logger.info('Deviant already resolved')
 
         params = await add_to_queue(queue=queue, **item)
         await spawn(request, update_queue_cache(app, params))
