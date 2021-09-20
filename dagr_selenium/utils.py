@@ -128,15 +128,24 @@ async def resolve_artists(manager, artists, flush=True):
 
 async def flush_errors_to_queue(manager, session, endpoint):
     cache = manager.get_cache()
+    config = manager.get_config()
+    nd_modes = config.get('deviantart', 'ndmodes').split(',')
     cache_slug = 'error_items'
     errors = await cache.query(cache_slug)
     items = []
     for e in errors:
         i = dict(e)
+        mode = i['mode']
         try:
-            if ('deviant' in i and i['deviant'] is not None) and (not 'resolved' in i) or (not i['resolved']):
-                i['deviant'] = await resolve_deviant(manager, i['deviant'])
-                i['resolved'] = True
+            if mode not in nd_modes:
+                if (not 'resolved' in i) or (not i['resolved']):
+                    i['deviant'] = await resolve_deviant(manager, i['deviant'])
+                    i['resolved'] = True
+                else:
+                    logger.info(f"Deviant for item {i} already resolved")
+            else:
+                logger.info(f"skipping resolve for  mode {mode}")
+
         except:
             pass
         items.append(i)
