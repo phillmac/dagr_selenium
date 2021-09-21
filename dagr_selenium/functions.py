@@ -518,7 +518,7 @@ def flush_errors_to_queue():
                 else:
                     logger.info(f"Deviant for item {i} already resolved")
             else:
-                logger.info(f"skipping resolve for  mode {mode}")
+                logger.info(f"Skipping resolve for mode {mode}")
         except:
             pass
         items.append(i)
