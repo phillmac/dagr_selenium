@@ -194,9 +194,10 @@ async def get_item(request):
     app = request.app
     queue = app['queue']
     waiting_count = app['waiting_count']
+    wait_for = app['wait_for']
     with waiting_count:
         try:
-            item = await asyncio.wait_for(queue.get(), 30)
+            item = await asyncio.wait_for(queue.get(), wait_for)
             queue.task_done()
             params = item.params
             logger.info(f"Dequed item {params}")
@@ -360,6 +361,8 @@ async def run_app():
         'deviantart.regexes.params', 'maxpriority')
 
     app['nd_modes'] = config.get('deviantart', 'ndmodes').split(',')
+
+    app['wait_for'] = environ.get('WAIT_FOR', 60)
 
     app.on_startup.append(start_background_tasks)
     app.on_cleanup.append(cleanup_background_tasks)
