@@ -164,10 +164,9 @@ async def add_items(request):
     queue = app['queue']
     nd_modes = app['nd_modes']
 
-
     for item in await request.json():
         if item['mode'] not in nd_modes:
-            if (( not 'resolved' in item) or (not item['resolved'])):
+            if ((not 'resolved' in item) or (not item['resolved'])):
                 try:
                     item['deviant'] = await resolve_deviant(
                         manager, item['deviant'], resolve_cache)
@@ -264,6 +263,7 @@ def shutdown_app(request):
     request.app['shutdown'].set()
     request.app['sleepmgr'].cancel_sleep()
     return json_response('ok')
+
 
 async def load_cached_queue(app):
     crawler_cache = app['crawler_cache']
@@ -363,6 +363,7 @@ async def run_app():
     app['nd_modes'] = config.get('deviantart', 'ndmodes').split(',')
 
     app['DEQUEUE_TIMEOUT'] = environ.get('DEQUEUE_TIMEOUT', 60)
+    logger.log(level=15, msg=f"Dequeue timeout: {app['DEQUEUE_TIMEOUT']}")
 
     app.on_startup.append(start_background_tasks)
     app.on_cleanup.append(cleanup_background_tasks)
