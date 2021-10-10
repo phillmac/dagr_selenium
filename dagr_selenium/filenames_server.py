@@ -101,7 +101,9 @@ async def get_subdir(app, dirpath):
 
 async def create_logger(request):
     params = await request.json()
-    print(params)
+
+    print('POST /logger/create', params)
+
     hostMode, maxBytes, backupCount, frmt = itemgetter(
         'hostMode', 'maxBytes', 'backupCount', 'frmt')(params)
 
@@ -135,7 +137,7 @@ async def remove_logger(request):
     params = await request.json()
     loggers_cache = request.app['loggers_cache']
 
-    print(params)
+    print('POST /logger/remove', params)
 
     hostMode = params['hostMode']
     if not hostMode in loggers_cache:
@@ -149,6 +151,9 @@ async def remove_logger(request):
 
 async def query_logger(request):
     params = await request.json()
+
+    print('GET /logger/exists', params)
+
     hostMode = params['hostMode']
     return json_response({'exists': hostMode in request.app['loggers_cache']})
 
@@ -164,8 +169,8 @@ async def list_dir(request):
         raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
     try:
-        subdir = await get_subdir(request.app, path_param)
         t_now = time_ns()
+        subdir = await get_subdir(request.app, path_param)
         resp = json_response([f.name async for f in await scandir(subdir)
                               if include_dirs or f.is_file()])
         t_spent = (time_ns() - t_now) / 1e6
@@ -178,7 +183,7 @@ async def list_dir(request):
 
 async def file_exists(request):
     params = await request.json()
-    print(params)
+    print('GET /file/exists', params)
     path_param = params.get('path', None)
     itemname = params.get('itemname', None)
     if path_param is None:
@@ -210,7 +215,7 @@ async def file_exists(request):
 
 async def dir_exists(request):
     params = await request.json()
-    print(params)
+    print('GET /dir/exists', params)
 
     path_param = params.get('path', None)
     itemname = params.get('itemname', None)
@@ -276,7 +281,7 @@ async def fetch_contents(request):
     path_param = params.get('path', None)
     filename = params.get('filename', None)
 
-    print(params)
+    print('GET /file_contents', params)
 
     if path_param is None:
         raise JSONHTTPBadRequest(reason='not ok: path param missing')
@@ -306,7 +311,7 @@ async def fetch_contents_b(request):
     path_param = params.get('path', None)
     filename = params.get('filename', None)
 
-    print(params)
+    print('GET /file_contnents_b', params)
 
     if path_param is None:
         raise JSONHTTPBadRequest(reason='not ok: path param missing')
@@ -342,7 +347,7 @@ async def update_json(request):
     filename = params.get('filename', None)
     content = params.get('content', None)
 
-    print({'path': path_param, 'filename': filename, 'content': len(content)})
+    print('POST /json', {'path': path_param, 'filename': filename, 'content': len(content)})
 
     if path_param is None:
         raise JSONHTTPBadRequest(reason='not ok: path param missing')
@@ -384,7 +389,7 @@ async def update_json_gz(request):
         filename = params.get('filename', None)
         content = params.get('content', None)
 
-    print({'path': path_param, 'filename': filename, 'content': len(content)})
+    print('POST /json_gz', {'path': path_param, 'filename': filename, 'content': len(content)})
 
     if path_param is None:
         raise JSONHTTPBadRequest(reason='not ok: path param missing')
@@ -409,7 +414,7 @@ async def update_json_gz(request):
 
 async def mk_dir(request):
     params = await request.json()
-    print(params)
+    print('POST /dir', params)
 
     path_param = params.get('path', None)
     dir_name = params.get('dir_name', None)
@@ -453,7 +458,7 @@ async def update_time(request):
     filename = params.get('filename', None)
     mtime = params.get('mtime', None)
 
-    print(params)
+    print('POST /file/utime', params)
 
     if path_param is None:
         raise JSONHTTPBadRequest(reason='not ok: path param missing')
@@ -509,12 +514,12 @@ async def write_file(request):
         filename = params.get('filename', None)
 
         if path_param is None:
-            print({'path': path_param, 'filename': filename,
+            print('POST /file', {'path': path_param, 'filename': filename,
                    'size': result['size']})
             raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
         if filename is None:
-            print({'path': path_param, 'filename': filename,
+            print('POST /file', {'path': path_param, 'filename': filename,
                    'size': result['size']})
             raise JSONHTTPBadRequest(reason='not ok: filename param missing')
 
@@ -541,7 +546,7 @@ async def fetch_json(request):
     path_param = params.get('path', None)
     filename = params.get('filename', None)
 
-    print(params)
+    print('GET /json', params)
 
     if path_param is None:
         raise JSONHTTPBadRequest(reason='not ok: path param missing')
@@ -600,7 +605,7 @@ async def rm_dir(request):
     path_param = params.get('path', None)
     dir_name = params.get('dir_name', None)
 
-    print(params)
+    print('DEL /dir', params)
 
     if path_param is None:
         raise JSONHTTPBadRequest(reason='not ok: path param missing')
@@ -637,6 +642,8 @@ async def rm_dir(request):
 async def query_lock(request):
     params = await request.json()
 
+    print('GET /dir/lock', params)
+
     path_param = params.get('path', None)
 
     print('query lock', params)
@@ -660,6 +667,8 @@ async def query_lock(request):
 
 async def aquire_lock(request):
     params = await request.json()
+
+    print('POST /dir/lock', params)
 
     path_param = params.get('path', None)
 
@@ -690,7 +699,7 @@ async def release_lock(request):
 
     path_param = params.get('path', None)
 
-    print(params)
+    print('DELETE /dir/lock', params)
 
     if path_param is None:
         raise JSONHTTPBadRequest(reason='not ok: path param missing')
@@ -718,7 +727,7 @@ async def refresh_lock(request):
 
     path_param = params.get('path', None)
 
-    print(params)
+    print('PATCH /dir/lock', params)
 
     if path_param is None:
         raise JSONHTTPBadRequest(reason='not ok: path param missing')
@@ -747,7 +756,7 @@ async def replace_item(request):
     filename = params.get('filename', None)
     new_filename = params.get('new_filename', None)
 
-    print(params)
+    print('POST /replace', params)
 
     if path_param is None:
         raise JSONHTTPBadRequest(reason='not ok: path param missing')
@@ -786,7 +795,7 @@ async def rename_item(item_type, request):
     itemname = params.get('itemname', None)
     new_itemname = params.get('new_itemname', None)
 
-    print(params)
+    print(f"PATCH /{item_type}", params)
 
     if path_param is None:
         raise JSONHTTPBadRequest(reason='not ok: path param missing')
