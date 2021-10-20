@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import re
+from json.decoder import JSONDecodeError
 from os import environ
 from pathlib import Path, PurePosixPath
 from pprint import pformat
@@ -164,7 +165,13 @@ async def add_items(request):
     queue = app['queue']
     nd_modes = app['nd_modes']
 
-    for item in await request.json():
+    try:
+        items_list = await request.json()
+    except JSONDecodeError:
+        raise JSONHTTPBadRequest(
+                        reason='not ok: JSONDecodeError')
+
+    for item in items_list:
         if item['mode'] not in nd_modes:
             if ((not 'resolved' in item) or (not item['resolved'])):
                 try:
