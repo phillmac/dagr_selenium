@@ -168,6 +168,7 @@ async def add_items(request):
     try:
         items_list = await request.json()
     except JSONDecodeError:
+        logger.exception()
         raise JSONHTTPBadRequest(
                         reason='not ok: JSONDecodeError')
 
