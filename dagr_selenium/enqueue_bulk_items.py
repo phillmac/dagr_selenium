@@ -41,6 +41,7 @@ async def __main__():
                 http_post_raw(session, enqueue_url, json=[item])
             except HTTPError:
                 logger.exception('Failed to enqueue item')
+    logger.info('Finished')
 
 if __name__ == '__main__':
     asyncio.run(__main__())
