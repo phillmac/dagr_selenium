@@ -5,7 +5,7 @@ from os import environ
 from dagr_revamped.DAGRManager import DAGRManager
 from dagr_revamped.TCPKeepAliveSession import TCPKeepAliveSession
 from dagr_revamped.utils import http_post_raw
-from requests.exceptions import HTTPError
+from requests.exceptions import ConnectionError, HTTPError
 
 from dagr_selenium.BulkCache import BulkCache
 from dagr_selenium.utils import get_urls
@@ -37,10 +37,15 @@ async def __main__():
                 await asyncio.sleep(30)
             logger.info(
                 f"{item.get('mode')} {item.get('deviant')} {item.get('mval')}")
-            try:
-                http_post_raw(session, enqueue_url, json=[item])
-            except HTTPError:
-                logger.exception('Failed to enqueue item')
+            succeded = False
+            while succeded is False:
+                try:
+                    http_post_raw(session, enqueue_url, json=[item])
+                    succeded = True
+                except HTTPError:
+                    logger.exception('Failed to enqueue item')
+                except ConnectionError:
+                    logger.exception('Connection error')
     logger.info('Finished')
 
 if __name__ == '__main__':
