@@ -38,11 +38,14 @@ async def __main__():
             logger.info(
                 f"{item.get('mode')} {item.get('deviant')} {item.get('mval')}")
             succeded = False
+            resp = None
             while succeded is False:
                 try:
                     http_post_raw(session, enqueue_url, json=[item])
                     succeded = True
-                except HTTPError:
+                except HTTPError as ex:
+                    if ex.response.status_code == 400:
+                        succeded = True
                     logger.exception('Failed to enqueue item')
                 except ConnectionError:
                     logger.exception('Connection error')
