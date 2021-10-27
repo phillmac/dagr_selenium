@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import gzip
+import hashlib
 import json
 import logging
 import mimetypes
@@ -512,6 +513,7 @@ async def write_file(request):
 
         path_param = params.get('path', None)
         filename = params.get('filename', None)
+        integrity = params.get('integrity', None)
 
         if path_param is None:
             print('POST /file', {'path': path_param, 'filename': filename,
@@ -522,6 +524,18 @@ async def write_file(request):
             print('POST /file', {'path': path_param, 'filename': filename,
                    'size': result['size']})
             raise JSONHTTPBadRequest(reason='not ok: filename param missing')
+
+        if integrity:
+            hash_obj= hashlib.new(
+                integrity['name']
+            block_size = 128 * hash_obj.block_size
+
+            while chunk := tmp.read(block_size):
+                hash_obj.update(chunk)
+
+            if hash_obj.hexdigest() != integrity['hexdigest']:
+                raise JSONHTTPBadRequest(reason='not ok: integrity mismatch')
+            tmp.seek(0)
 
         subdir = None
 
