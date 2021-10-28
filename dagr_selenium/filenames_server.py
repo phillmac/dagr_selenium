@@ -39,7 +39,8 @@ class LockEntry():
         self.__expiry = time() + 300
         self.__created = time()
 
-        print(f"Lockfile {str(self.__lockfile)} exists:", self.__lockfile.exists())
+        print(f"Lockfile {str(self.__lockfile)} exists:",
+              self.__lockfile.exists())
 
     @property
     def details(self):
@@ -63,7 +64,6 @@ class LockEntry():
             self.__lockfile.unlink()
         else:
             print(f"Lockfile {str(self.__lockfile)} already removed")
-
 
 
 load_dotenv()
@@ -348,7 +348,8 @@ async def update_json(request):
     filename = params.get('filename', None)
     content = params.get('content', None)
 
-    print('POST /json', {'path': path_param, 'filename': filename, 'content': len(content)})
+    print('POST /json', {'path': path_param,
+          'filename': filename, 'content': len(content)})
 
     if path_param is None:
         raise JSONHTTPBadRequest(reason='not ok: path param missing')
@@ -390,7 +391,8 @@ async def update_json_gz(request):
         filename = params.get('filename', None)
         content = params.get('content', None)
 
-    print('POST /json_gz', {'path': path_param, 'filename': filename, 'content': len(content)})
+    print('POST /json_gz', {'path': path_param,
+          'filename': filename, 'content': len(content)})
 
     if path_param is None:
         raise JSONHTTPBadRequest(reason='not ok: path param missing')
@@ -517,17 +519,16 @@ async def write_file(request):
 
         if path_param is None:
             print('POST /file', {'path': path_param, 'filename': filename,
-                   'size': result['size']})
+                                 'size': result['size']})
             raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
         if filename is None:
             print('POST /file', {'path': path_param, 'filename': filename,
-                   'size': result['size']})
+                                 'size': result['size']})
             raise JSONHTTPBadRequest(reason='not ok: filename param missing')
 
         if integrity:
-            hash_obj= hashlib.new(
-                integrity['name']
+            hash_obj = hashlib.new(integrity['name'])
             block_size = 128 * hash_obj.block_size
 
             while chunk := tmp.read(block_size):
@@ -551,7 +552,7 @@ async def write_file(request):
         print('POST /file', 'path', path_param, 'filename', filename, 'size',
               sizeof_fmt(result['size']), 'time:', '{:.2f}'.format(t_spent)+'ms')
 
-        return json_response({'status':'ok', 'result': result})
+        return json_response({'status': 'ok', 'result': result})
 
 
 async def fetch_json(request):
@@ -835,7 +836,7 @@ async def rename_item(item_type, request):
     if item_type == 'dir':
         try:
             oldin = await get_subdir(request.app,
-                               Path(path_param).joinpath(itemname))
+                                     Path(path_param).joinpath(itemname))
         except StopAsyncIteration:
             raise JSONHTTPBadRequest(reason='not ok: item does not exist')
 
@@ -901,10 +902,11 @@ async def cleanup_caches(app):
         v.release()
     locks_cache.clear()
 
-    for _k,v in app['sessions'].items():
+    for _k, v in app['sessions'].items():
         await v.close()
 
     sessions_cache.clear()
+
 
 async def run_app():
     app = web.Application(client_max_size=1024**2 * 100)
