@@ -129,7 +129,8 @@ async def handle_logger(request):
         raise JSONHTTPBadRequest(reason='Logger not open')
     handler = loggers_cache[hostMode]
     recordParams = params['record']
-    recordParams['record']['arguments'] = tuple(*params['record']['arguments'])
+    if arguments :=  recordParams.get('arguments', None):
+        recordParams['arguments'] = tuple(arguments)
     record = logging.makeLogRecord(recordParams)
     handler.handle(record)
     return json_response('ok')
