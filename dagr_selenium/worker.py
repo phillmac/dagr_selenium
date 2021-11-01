@@ -3,6 +3,8 @@ import logging
 from os import environ
 from pprint import pformat
 
+from aiofiles.os import exists
+
 from selenium.common.exceptions import (InvalidSessionIdException,
                                         WebDriverException)
 
@@ -52,17 +54,24 @@ async def process_item(item):
         except:
             pass
 
+async def check_stop_file():
+    while not stop_event.is_set():
+        await asyncio.sleep(60)
+        if await exists('~/worker.dagr.stop'):
+            stop_event.set()
+
 async def __main__():
+    asyncio.create_task(check_stop_file())
     manager.set_stop_check(stop_event.is_set)
     with manager.get_dagr() as dagr:
         logger.info('Flushing previous errors')
         flush_errors_to_queue()
         logger.info("Worker ready")
-        while manager.session_ok:
+        while manager.session_ok and not stop_event.is_set():
             logger.info("Fetching work item")
             item = await fetch_item()
             if not item is None:
-                logger.info(f"Got work item {item.params}")
+                logger.info('Got work item %s',item.params)
                 await process_item(item)
                 dagr.print_errors()
                 dagr.print_dl_total()
