@@ -13,10 +13,12 @@ from dagr_revamped.DAGRManager import DAGRManager
 from dagr_revamped.lib import DagrException
 from dagr_revamped.utils import artist_from_url, convert_queue
 from dotenv import load_dotenv
+from pybreaker import CircuitBreakerError
 
 from dagr_selenium.BulkCache import BulkCache
 from dagr_selenium.DeviantResolveCache import DeviantResolveCache
-from dagr_selenium.JSONHTTPBadRequest import JSONHTTPBadRequest
+from dagr_selenium.JSONHTTPErrors import (JSONHTTPBadRequest,
+                                          JSONHTTPInternalServerError)
 from dagr_selenium.QueueItem import QueueItem
 from dagr_selenium.SleepMgr import SleepMgr
 from dagr_selenium.utils import resolve_deviant
@@ -170,7 +172,7 @@ async def add_items(request):
     except JSONDecodeError:
         logger.exception()
         raise JSONHTTPBadRequest(
-                        reason='not ok: JSONDecodeError')
+            reason='not ok: JSONDecodeError')
 
     for item in items_list:
         if item['mode'] not in nd_modes:
@@ -249,8 +251,11 @@ async def query_resolve_cache(request):
 
 async def flush_resolve_cache(request):
     resolve_cache = request.app['resolve_cache']
-    await resolve_cache.flush()
-    return json_response('ok')
+    try:
+        await resolve_cache.flush()
+        return json_response('ok')
+    except CircuitBreakerError:
+        return JSONHTTPInternalServerError('CircuitBreakerError')
 
 
 async def bulk_get_items(request):
@@ -392,8 +397,11 @@ async def run_app():
     )
 
     while not app['shutdown'].is_set():
-        await resolve_cache.flush()
-        await bulk_cache.flush()
+        try:
+            await resolve_cache.flush()
+            await bulk_cache.flush()
+        except CircuitBreakerError:
+            logger.warning('CircuitBreakerError')
         await app['sleepmgr'].sleep()
 
     print('Shutting down')

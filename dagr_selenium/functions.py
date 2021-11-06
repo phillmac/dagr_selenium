@@ -1,10 +1,10 @@
 import logging
-import os
 from itertools import islice
-from os import environ, truncate
+from os import environ
 from pathlib import Path
 from pprint import pformat, pprint
 from time import sleep, time
+import re
 
 from dagr_revamped.builtin_plugins.classes.DAGRHTTPIo import DAGRHTTPIo
 from dagr_revamped.dagr_logging import log
@@ -354,18 +354,36 @@ def load_comments():
         browser.click_element(load_more)
 
 
-def dump_callback(page, content, cache_io, load_more=None):
+def dump_callback(page, content, cache, load_more=None, **kwargs):
+
     if load_more:
         load_comments()
     try:
         html_name = get_html_name(page).name
-        if not cache_io.exists(subdir='.html', fname=html_name, update_cache=False):
-            cache_io.write_bytes(content, subdir='.html', fname=html_name)
+        if not cache.cache_io.exists(subdir='.html', fname=html_name, update_cache=False):
+            cache.cache_io.write_bytes(content, subdir='.html', fname=html_name)
     except:
         logger.exception('Error while dumping html')
 
+def fetch_lit_images(current_page, cache, verify_exists=None):
+    dagr  = manager.get_dagr()
+    for img in current_page.find_all('img', {'src': re.compile('https://images-wixmp-')}):
+        logger.log(15, 'Found literature image')
+    processor = dagr.deviation_processor(
+                dagr, cache, link, verify_exists=verify_exists)
 
-def rip(mode, deviant=None, mval=None, full_crawl=False, disable_filter=False, crawl_offset=None, no_crawl=None, dump_html=None, disable_resolve=None, resolved=None, **kwargs):
+def handle_callbacks(page_type, page_link, current_page, page_content, cache, dump_html, **kwargs):
+
+    if page_type == 'literature':
+        fetch_lit_images(current_page, cache)
+
+    if dump_html:
+        dump_callback(page_link, page_content, cache, **kwargs)
+
+
+
+
+def rip(mode, deviant=None, mval=None, full_crawl=False, disable_filter=False, crawl_offset=None, no_crawl=None, disable_resolve=None, resolved=None, **kwargs):
     if crawl_offset:
         logger.log(level=15, msg=f"crawl_offset: {crawl_offset}")
 
@@ -397,8 +415,7 @@ def rip(mode, deviant=None, mval=None, full_crawl=False, disable_filter=False, c
             exclude = [*cache.get_premium(), *cache.get_httperrors()]
             pages = [p for p in pages if not p in exclude]
             rip_pages(cache, pages, full_crawl,
-                      disable_filter=disable_filter, callback=lambda page, content: dump_callback(
-                          page, content, cache.cache_io, load_more=kwargs.get('load_more')) if dump_html else None, **kwargs)
+                      disable_filter=disable_filter, callback=lambda **cbkwargs: handle_callbacks(**cbkwargs, **kwargs), **kwargs)
     except DagrCacheLockException:
         pass
 

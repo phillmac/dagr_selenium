@@ -26,7 +26,7 @@ from aiohttp import ClientSession, web
 from aiohttp.web_response import json_response
 from dotenv import load_dotenv
 
-from dagr_selenium.JSONHTTPBadRequest import JSONHTTPBadRequest
+from dagr_selenium.JSONHTTPErrors import JSONHTTPBadRequest
 from dagr_selenium.SleepMgr import SleepMgr
 
 

@@ -11,7 +11,7 @@ from dagr_revamped.exceptions import DagrCacheLockException
 from dagr_revamped.utils import get_remote_io
 from dotenv import load_dotenv
 
-from dagr_selenium.JSONHTTPBadRequest import JSONHTTPBadRequest
+from dagr_selenium.JSONHTTPErrors import JSONHTTPBadRequest
 from dagr_selenium.utils import (flush_errors_to_queue,
                                  get_urls)
 
