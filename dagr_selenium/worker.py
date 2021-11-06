@@ -58,6 +58,7 @@ async def process_item(item):
 
 async def check_stop_file():
     checkfile = Path('~/worker.dagr.stop').expanduser()
+    logger.info('Checkfilepath is %s', str(checkfile))
     while not stop_event.is_set():
         await asyncio.sleep(60)
         if await exists(checkfile):
