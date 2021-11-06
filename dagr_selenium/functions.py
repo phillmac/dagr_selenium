@@ -361,16 +361,19 @@ def dump_callback(page, content, cache, load_more=None, **kwargs):
     try:
         html_name = get_html_name(page).name
         if not cache.cache_io.exists(subdir='.html', fname=html_name, update_cache=False):
-            cache.cache_io.write_bytes(content, subdir='.html', fname=html_name)
+            cache.cache_io.write_bytes(
+                content, subdir='.html', fname=html_name)
     except:
         logger.exception('Error while dumping html')
 
+
 def fetch_lit_images(current_page, cache, verify_exists=None):
-    dagr  = manager.get_dagr()
+    dagr = manager.get_dagr()
     for img in current_page.find_all('img', {'src': re.compile('https://images-wixmp-')}):
         logger.log(15, 'Found literature image')
-    processor = dagr.deviation_processor(
-                dagr, cache, link, verify_exists=verify_exists)
+    # processor = dagr.deviation_processor(
+    #             dagr, cache, link, verify_exists=verify_exists)
+
 
 def handle_callbacks(page_type, page_link, current_page, page_content, cache, dump_html, **kwargs):
 
@@ -379,8 +382,6 @@ def handle_callbacks(page_type, page_link, current_page, page_content, cache, du
 
     if dump_html:
         dump_callback(page_link, page_content, cache, **kwargs)
-
-
 
 
 def rip(mode, deviant=None, mval=None, full_crawl=False, disable_filter=False, crawl_offset=None, no_crawl=None, disable_resolve=None, resolved=None, **kwargs):
@@ -394,7 +395,7 @@ def rip(mode, deviant=None, mval=None, full_crawl=False, disable_filter=False, c
             pass
 
     if 'html' in mode:
-        dump_html = True
+        kwargs['dump_html'] = True
         mode = mode.replace('_html', '')
 
     try:
@@ -402,7 +403,7 @@ def rip(mode, deviant=None, mval=None, full_crawl=False, disable_filter=False, c
                             full_crawl=full_crawl, crawl_offset=crawl_offset, no_crawl=no_crawl)
         with DAGRCache.with_queue_only(config, mode, deviant, mval, dagr_io=DAGRHTTPIo) as cache:
 
-            if dump_html and not cache.cache_io.dir_exists(dir_name='.html'):
+            if kwargs.get('dump_html', None) and not cache.cache_io.dir_exists(dir_name='.html'):
                 logger.info('Creating .html dir')
                 cache.cache_io.mkdir(dir_name='.html')
 
