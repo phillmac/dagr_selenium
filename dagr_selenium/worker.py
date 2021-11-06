@@ -1,15 +1,15 @@
 import asyncio
 import logging
+from json import dumps
 from os import environ
 from pprint import pformat
 
 from aiofiles.os import exists
-
 from selenium.common.exceptions import (InvalidSessionIdException,
                                         WebDriverException)
 
-from .functions import (config, flush_errors_to_queue,
-                        manager, queueman_fetch_url, session)
+from .functions import (config, flush_errors_to_queue, manager,
+                        queueman_fetch_url, session)
 from .QueueItem import QueueItem
 
 env_level = environ.get('dagr.worker.logging.level', None)
@@ -54,11 +54,13 @@ async def process_item(item):
         except:
             pass
 
+
 async def check_stop_file():
     while not stop_event.is_set():
         await asyncio.sleep(60)
         if await exists('~/worker.dagr.stop'):
             stop_event.set()
+
 
 async def __main__():
     asyncio.create_task(check_stop_file())
@@ -71,7 +73,7 @@ async def __main__():
             logger.info("Fetching work item")
             item = await fetch_item()
             if not item is None:
-                logger.info('Got work item %s',item.params)
+                logger.info('Got work item %s', dumps(item.params))
                 await process_item(item)
                 dagr.print_errors()
                 dagr.print_dl_total()

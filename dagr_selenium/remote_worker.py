@@ -1,19 +1,20 @@
 import asyncio
-from dagr_selenium.functions import resolve_deviant
 import logging
+from json import dumps
 from os import environ
 from pprint import pformat
 
 from aiohttp import ClientSession, web
 from aiohttp.web_response import json_response
+from dagr_revamped.DAGRCache import DAGRCache
 from dagr_revamped.DAGRManager import DAGRManager
 from dagr_revamped.exceptions import DagrCacheLockException
 from dagr_revamped.utils import get_remote_io
 from dotenv import load_dotenv
 
+from dagr_selenium.functions import resolve_deviant
 from dagr_selenium.JSONHTTPErrors import JSONHTTPBadRequest
-from dagr_selenium.utils import (flush_errors_to_queue,
-                                 get_urls)
+from dagr_selenium.utils import flush_errors_to_queue, get_urls
 
 from .QueueItem import QueueItem
 
@@ -27,7 +28,6 @@ async def fetch_item(app):
     except:
         app['logger'].exception('Error while fetching work item')
 
-from dagr_revamped.DAGRCache import DAGRCache
 
 def create_crawl_task():
 
@@ -37,7 +37,8 @@ async def process_item(app, manager, item):
 
     app['work_items'][item_key] = item
 
-    deviant = item.deviant if item.resolved else resolve_deviant(manager, item.deviant)
+    deviant = item.deviant if item.resolved else resolve_deviant(
+        manager, item.deviant)
 
     task_queue = asyncio.Queue()
     app['tasks'][item_key] = task_queue
@@ -130,12 +131,11 @@ async def run_app():
         logger.info("Fetching work item")
         item = await fetch_item(app)
         if not item is None:
-            logger.info(f"Got work item {item.params}")
+            logger.info('Got work item %s', dumps(item.params))
             await process_item(app, manager, item)
         else:
             logger.warning('Unable to fetch workitem')
             await asyncio.sleep(30)
-
 
     print('Shutting down')
 
