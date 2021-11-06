@@ -1,3 +1,4 @@
+from pybreaker import CircuitBreakerError
 import asyncio
 import logging
 from itertools import islice
@@ -35,7 +36,6 @@ def get_urls(config):
 
     queman_waiting_url = environ.get('QUEUEMAN_WAITING_URL', None) or config.get(
         'dagr.plugins.selenium', 'queueman_waiting_url', key_errors=False) or 'http://127.0.0.1:3005/waiting'
-
 
     urls = {
         'fetch':            queueman_fetch_url,
@@ -121,7 +121,10 @@ async def resolve_artists(manager, artists, flush=True):
                     continue
 
     if flush:
-        await resolve_cache.flush()
+        try:
+            await resolve_cache.flush()
+        except CircuitBreakerError:
+            logger.warning('CircuitBreakerError')
 
     return resolved_artists
 
