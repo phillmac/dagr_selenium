@@ -2,6 +2,7 @@ import asyncio
 import logging
 from json import dumps
 from os import environ
+from pathlib import Path
 from pprint import pformat
 
 from aiofiles.os import exists
@@ -56,10 +57,12 @@ async def process_item(item):
 
 
 async def check_stop_file():
+    checkfile = Path('~/worker.dagr.stop').expanduser()
     while not stop_event.is_set():
         await asyncio.sleep(60)
-        if await exists('~/worker.dagr.stop'):
+        if await exists(checkfile):
             stop_event.set()
+            logger.info('Found stop file')
 
 
 async def __main__():
