@@ -4,11 +4,13 @@ from json import dumps
 from os import environ
 from pathlib import Path
 from pprint import pformat
+from threading import Event
 
 from aiofiles.os import exists
 from selenium.common.exceptions import (InvalidSessionIdException,
                                         WebDriverException)
 
+from .BackgroundTask import BackgroundTask
 from .functions import (config, flush_errors_to_queue, manager,
                         queueman_fetch_url, session)
 from .QueueItem import QueueItem
@@ -22,7 +24,7 @@ manager.init_logging(level_mapped)
 
 logger = logging.getLogger(__name__)
 
-stop_event = asyncio.Event()
+stop_event = Event()
 
 
 async def fetch_item():
@@ -67,7 +69,8 @@ async def check_stop_file():
 
 
 async def __main__():
-    asyncio.create_task(check_stop_file())
+    bg_tsk = BackgroundTask()
+    await bg_tsk.run(check_stop_file, ())
     manager.set_stop_check(stop_event.is_set)
     with manager.get_dagr() as dagr:
         logger.info('Flushing previous errors')
