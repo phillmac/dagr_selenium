@@ -416,7 +416,7 @@ def rip(mode, deviant=None, mval=None, full_crawl=False, disable_filter=False, c
             exclude = [*cache.get_premium(), *cache.get_httperrors()]
             pages = [p for p in pages if not p in exclude]
             rip_pages(cache, pages, full_crawl,
-                      disable_filter=disable_filter, callback=lambda **cbkwargs: handle_callbacks(**cbkwargs, **kwargs), **kwargs)
+                      disable_filter=disable_filter, callback=lambda **cbkwargs: handle_callbacks(cache=cache, **cbkwargs, **kwargs), **kwargs)
     except DagrCacheLockException:
         pass
 
