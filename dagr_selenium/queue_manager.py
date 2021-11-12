@@ -79,7 +79,7 @@ def detect_mval(mode, url):
         raise NotImplementedError(f"Mode {mode} is not implemented")
     slice_val = len(parts) - slice_count
     sliced = [*parts[len(parts) - slice_count:]]
-    result = str(PurePosixPath(sliced))
+    result = str(PurePosixPath(*sliced))
     logger.log(15, 'Slice val: %s, Sliced: %s, result: %s', slice_val, sliced, result)
     return result
 
