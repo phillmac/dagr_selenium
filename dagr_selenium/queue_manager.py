@@ -55,26 +55,33 @@ def detect_mode(app, url):
     regex_max_priority = app['regex_max_priority']
     regexes = app['regexes']
     regex_priorities = app['regex_priorities']
-
+    logger.log(15, 'Got url: %s', url)
     for p in range(regex_max_priority):
         logger.log(level=15, msg=f"Trying regex priority {p}")
         for mode in regexes:
             if regex_priorities[mode] == p:
                 logger.log(level=15, msg=f"Trying regex for {mode}")
                 if regexes[mode].match(url):
+                    logger.log(15, "Mode is '%s'", mode)
                     return mode
     return None
 
 
 def detect_mval(mode, url):
     parts = PurePosixPath(url).parts
+    logger.log(15, "Mode: %s, Url: '%s' Parts: %s", mode, url, parts)
     slice_count = {'tag': 0, 'gallery': False, 'favs': False, 'gallery_featured': False,
                    'favs_featured': False, 'art': 1, 'album': 2, 'collection': 2}.get(mode)
     if slice_count is False:
+        logger.log(15, 'No slice')
         return None
     if slice_count is None:
         raise NotImplementedError(f"Mode {mode} is not implemented")
-    return str(PurePosixPath(*parts[len(parts) - slice_count:]))
+    slice_val = len(parts) - slice_count
+    sliced = [*parts[len(parts) - slice_count:]]
+    result = str(PurePosixPath(sliced))
+    logger.log(15, 'Slice val: %s, Sliced: %s, result: %s', slice_val, sliced, result)
+    return result
 
 
 async def add_url(request):
