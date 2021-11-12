@@ -69,7 +69,7 @@ def detect_mode(app, url):
 
 def detect_mval(mode, url):
     parts = PurePosixPath(url).parts
-    logger.log(15, "Mode: %s, Url: '%s' Parts: %s", mode, url, parts)
+    logger.log(15, "Mode: %s, Url: '%s' Parts: %s", mode, url, list(parts))
     slice_count = {'tag': 0, 'gallery': False, 'favs': False, 'gallery_featured': False,
                    'favs_featured': False, 'art': 1, 'album': 2, 'collection': 2}.get(mode)
     if slice_count is False:
