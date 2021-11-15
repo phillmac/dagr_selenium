@@ -21,14 +21,14 @@ from time import mktime, time, time_ns
 import aiofiles
 import portalocker
 from aiofiles.os import (abspath, exists, makedirs, remove, rename, replace,
-                         rmdir, scandir)
+                         rmdir, scandir, stat)
 from aiohttp import ClientSession, web
 from aiohttp.web_response import json_response
 from dotenv import load_dotenv
 
 from dagr_selenium.JSONHTTPErrors import JSONHTTPBadRequest
 from dagr_selenium.SleepMgr import SleepMgr
-
+from dagr_selenium.version import version
 
 class LockEntry():
     def __init__(self, diritem):
@@ -76,6 +76,11 @@ def sizeof_fmt(num, suffix='B'):
             return "%3.2f%s%s" % (num, unit, suffix)
         num /= 1024.0
     return "%.1f%s%s" % (num, 'Yi', suffix)
+
+
+async def stat_to_json(fp):
+    s_obj = await stat(fp)
+    return {k: getattr(s_obj, k) for k in dir(s_obj) if k.startswith('st_')}
 
 
 async def get_subdir(app, dirpath):
@@ -129,7 +134,7 @@ async def handle_logger(request):
         raise JSONHTTPBadRequest(reason='Logger not open')
     handler = loggers_cache[hostMode]
     recordParams = params['record']
-    if arguments :=  recordParams.get('args', None):
+    if arguments := recordParams.get('args', None):
         recordParams['args'] = tuple(arguments)
     record = logging.makeLogRecord(recordParams)
     handler.handle(record)
@@ -201,7 +206,7 @@ async def file_exists(request):
     try:
         subdir = await get_subdir(request.app, path_param)
     except StopAsyncIteration:
-        print('Subdir does not exist')
+        print('Subdir does not exist', path_param)
         return json_response({'exists': False})
     t_now = time_ns()
     fnamepath = PurePosixPath(itemname)
@@ -214,6 +219,36 @@ async def file_exists(request):
             asyncio.create_task(check_update_fn_cache(
                 params, subdir, path_param, session))
     return json_response({'exists': result})
+
+
+async def file_stat(request):
+    params = await request.json()
+
+    print('GET /file/stat', params)
+
+    path_param = params.get('path', None)
+    itemname = params.get('itemname', None)
+
+    if path_param is None:
+        raise JSONHTTPBadRequest(reason='not ok: path param missing')
+
+    if itemname is None:
+        raise JSONHTTPBadRequest(reason='not ok: itemname param missing')
+
+    subdir = None
+
+    try:
+        subdir = await get_subdir(request.app, path_param)
+    except StopAsyncIteration:
+        print('Subdir does not exist', path_param)
+        raise JSONHTTPBadRequest(reason='not ok: path does not exist')
+
+    try:
+        return json_response({
+            'stat': await stat_to_json(subdir.joinpath(PurePosixPath(itemname).name))})
+    except FileNotFoundError:
+        print('Item does not exist', itemname)
+        raise JSONHTTPBadRequest(reason='not ok: item does not exist')
 
 
 async def dir_exists(request):
@@ -232,7 +267,7 @@ async def dir_exists(request):
     try:
         subdir = await get_subdir(request.app, path_param)
     except StopAsyncIteration:
-        print('Subdir does not exist')
+        print('Subdir does not exist', path_param)
         return json_response({'exists': False})
 
     dir_item = subdir if itemname is None else subdir.joinpath(
@@ -351,7 +386,7 @@ async def update_json(request):
     content = params.get('content', None)
 
     print('POST /json', {'path': path_param,
-          'filename': filename, 'content': len(content)})
+                         'filename': filename, 'content': len(content)})
 
     if path_param is None:
         raise JSONHTTPBadRequest(reason='not ok: path param missing')
@@ -394,7 +429,7 @@ async def update_json_gz(request):
         content = params.get('content', None)
 
     print('POST /json_gz', {'path': path_param,
-          'filename': filename, 'content': len(content)})
+                            'filename': filename, 'content': len(content)})
 
     if path_param is None:
         raise JSONHTTPBadRequest(reason='not ok: path param missing')
@@ -917,6 +952,7 @@ async def run_app():
     app.router.add_get('/file_contents', fetch_contents)
     app.router.add_get('/file_contents_b', fetch_contents_b)
     app.router.add_get('/file/exists', file_exists)
+    app.router.add_get('/file/stat', file_stat)
     app.router.add_get('/dir', list_dir)
     app.router.add_get('/dir/exists', dir_exists)
     app.router.add_get('/dir/lock', query_lock)
@@ -959,6 +995,7 @@ async def run_app():
     await site.start()
 
     names = sorted(str(s.name) for s in runner.sites)
+    print('DAGR Selenium Filenames Server Version', version)
     print(
         "======== Running on {} ========\n"
         "(Press CTRL+C to quit)".format(", ".join(names))
