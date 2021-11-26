@@ -1,7 +1,7 @@
 import asyncio
 from dagr_selenium.DeviantResolveCache import DeviantResolveCache
 import logging
-from os import environ
+from os import environ, truncate
 
 import dagr_revamped.version as dagr_revamped_version
 from aiohttp import web
@@ -38,7 +38,8 @@ async def update_cache(request, slug):
 
     if c_after != c_before:
         logging.info('Added %s items', c_after - c_before)
-        asyncio.create_task(flush_cache(cache, slug))
+        request.app['stale'][slug] = True
+
     return json_response('ok', headers={
         'Access-Control-Allow-Origin': '*'
     })
@@ -114,6 +115,7 @@ async def run_app():
         app['sessions'] = sessions
         app['sleepmgr'] = SleepMgr(app, 300)
         app['crawler_cache'] = manager.get_cache()
+        app['stale'] = {}
 
         app.on_startup.append(start_background_tasks)
         app.on_cleanup.append(cleanup_background_tasks)
@@ -132,6 +134,10 @@ async def run_app():
 
         while not app['shutdown'].is_set():
             await app['sleepmgr'].sleep()
+            for slug, is_stale in app['stale'].items():
+                if is_stale:
+                    asyncio.create_task(flush_cache(app['crawler_cache'], slug))
+                    app['stale'][slug] = False
             await sort_all(manager, queueman_session, enqueue_url)
 
         print('Shutting down')
