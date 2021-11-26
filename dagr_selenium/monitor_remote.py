@@ -15,23 +15,34 @@ from dagr_selenium.utils import get_urls, sort_all
 
 print('Dagr version:', dagr_revamped_version)
 
+
 async def flush_cache(cache, slug):
     cache.flush(slug)
+
 
 def shutdown_app(request):
     request.app['shutdown'].set()
     request.app['sleepmgr'].cancel_sleep()
     return json_response('ok')
 
+
 async def update_cache(request, slug):
     urls = await request.json()
     cache = request.app['crawler_cache']
 
+    c_before = len(cache.query(slug))
+
     cache.update(slug, urls)
-    asyncio.create_task(flush_cache(cache, slug))
+
+    c_after = len(cache.query(slug))
+
+    if c_after != c_before:
+        logging.info('Added %s items', c_after - c_before)
+        asyncio.create_task(flush_cache(cache, slug))
     return json_response('ok', headers={
         'Access-Control-Allow-Origin': '*'
     })
+
 
 async def purge_resolve_cache_items(request):
     deviants = await request.json()
@@ -45,7 +56,6 @@ async def purge_resolve_cache_items(request):
         resolve_cache.purge(d)
 
     return json_response('ok')
-
 
 
 async def start_background_tasks(app):
@@ -73,10 +83,9 @@ async def run_app():
     manager = DAGRManager()
     config = manager.get_config()
 
-
     env_level = environ.get('dagr.monitor_remote.logging.level', None)
     level_mapped = config.map_log_level(
-    int(env_level)) if not env_level is None else None
+        int(env_level)) if not env_level is None else None
 
     manager.set_mode('monitor_remote')
     manager.init_logging(level_mapped)
@@ -91,10 +100,14 @@ async def run_app():
 
         app = web.Application(client_max_size=1024**2 * 100)
         app.router.add_post('/shutdown', shutdown_app)
-        app.router.add_post('/watchlist/items', lambda request: update_cache(request, 'watch_urls'))
-        app.router.add_post('/trash/items', lambda request: update_cache(request, 'trash_urls'))
-        app.router.add_delete('/resolve/cache/items', purge_resolve_cache_items)
-        app.router.add_post('/resort/all', lambda request: update_cache(request, 'trash_urls'))
+        app.router.add_post(
+            '/watchlist/items', lambda request: update_cache(request, 'watch_urls'))
+        app.router.add_post(
+            '/trash/items', lambda request: update_cache(request, 'trash_urls'))
+        app.router.add_delete('/resolve/cache/items',
+                              purge_resolve_cache_items)
+        app.router.add_post('/resort/all', lambda _request: sort_all(manager, queueman_session, enqueue_url))
+        app.router.add_post('/shutdown', shutdown_app)
 
 
         app['shutdown'] = asyncio.Event()
