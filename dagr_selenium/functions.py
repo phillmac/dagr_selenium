@@ -350,7 +350,11 @@ def load_comments():
     load_comments = find_load_comments(browser)
     if load_comments:
         browser.click_element(load_comments)
+    count = 0
     while load_more := find_load_more(browser):
+        count += 1
+        if count >= 100:
+            break
         browser.click_element(load_more)
 
 
