@@ -331,22 +331,22 @@ def load_comments():
     browser = manager.get_browser()
     logger.info('Loading comments')
     load_more_st = time()
-    click_count =  browser.execute_async_script("""
-const done = arguments[0]
-let clickCount = 0
+    click_count = browser.execute_async_script("""
+const done = arguments[0];
+let clickCount = 0;
 (async () => {
   while(true) {
-    const loadMore = Array.from(document.getElementsByTagName('button')).find(b=>b.innerText=='Load More')
+    const loadMore = Array.from(document.getElementsByTagName('button')).find(b=>b.innerText=='Load More');
     if (! loadMore) break
-    console.info('Clicking Load More')
-    clickCount++
-    loadMore.click()
-    await new Promise(r => setTimeout(r, 5000))
+    console.info('Clicking Load More');
+    clickCount++;
+    loadMore.click();
+    await new Promise(r => setTimeout(r, 5000));
   }
-  done(clickCount)
+  done({clickCount});
 })()
     """,
-    timeout=900)
+    timeout=900).get('clickCount')
     logger.info('Clicking load more %s times took %.4f seconds', click_count, time() - load_more_st)
 
 def dump_callback(page, content, cache, load_more=None, **kwargs):
