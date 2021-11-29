@@ -156,24 +156,6 @@ def find_tickbox_parent(context):
             if inp_type == 'checkbox':
                 return label
 
-
-def find_load_comments(context):
-    for btn in context.find_elements_by_tag_name('button'):
-        if 'load previous comments' in btn.get_attribute('innerText').lower():
-            logger.info('Found load comments')
-            return btn
-
-
-def find_load_more(context):
-    for btn in context.find_elements_by_tag_name('button'):
-        try:
-            if 'load more' in btn.get_attribute('innerText').lower():
-                logger.info('Found load more')
-                return btn
-        except StaleElementReferenceException:
-            pass
-
-
 def is_remove_bttn(bttn):
     innerHTML = bttn.get_attribute('innerHTML')
     return 'Remove' in innerHTML and not bttn.text.lower() == 'removed'
@@ -347,16 +329,24 @@ def rip_pages(cache, pages, full_crawl=False, disable_filter=False, callback=Non
 
 def load_comments():
     browser = manager.get_browser()
-    load_comments = find_load_comments(browser)
-    if load_comments:
-        browser.click_element(load_comments)
-    count = 0
-    while load_more := find_load_more(browser):
-        count += 1
-        if count >= 100:
-            break
-        browser.click_element(load_more)
-
+    logger.info('Loading comments')
+    click_count =  browser.execute_async_script("""
+const done = arguments[0]
+let clickCount = 0
+(async () => {
+  while(true) {
+    const loadMore = Array.from(document.getElementsByTagName('button')).find(b=>b.innerText=='Load More')
+    if (! loadMore) break
+    console.info('Clicking Load More')
+    clickCount++
+    loadMore.click()
+    await new Promise(r => setTimeout(r, 5000))
+  }
+  done(clickCount)
+})()
+    """,
+    timeout=900)
+    logger.info('Clicked load more %s times', click_count)
 
 def dump_callback(page, content, cache, load_more=None, **kwargs):
 
