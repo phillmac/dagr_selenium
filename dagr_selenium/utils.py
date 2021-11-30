@@ -178,11 +178,14 @@ async def enqueue_artists(manager, artists, sorted_pages=set()):
     progress = 0
     queued_artists = []
     pending_slug = 'pending_gallery'
+    dagr_io=manager.get_dagr().io
+    logger.info('IO class name is %s', dagr_io.__name__)
 
     for deviant, pages in artists.items():
         try:
             addst = time()
-            with DAGRCache.with_queue_only(config, 'gallery', deviant, dagr_io=manager.get_dagr().io) as cache:
+
+            with DAGRCache.with_queue_only(config, 'gallery', deviant, dagr_io=dagr_io) as cache:
                 base_dir_exists = cache.cache_io.dir_exists()
                 logger.log(
                     level=15, msg=f"Sorting pages into {cache.rel_dir}, dir exists: {base_dir_exists}")
