@@ -107,9 +107,11 @@ async def run_app():
             '/trash/items', lambda request: update_cache(request, 'trash_urls'))
         app.router.add_delete('/resolve/cache/items',
                               purge_resolve_cache_items)
-        app.router.add_post('/sort/all', lambda _request: sort_all(manager, queueman_session, enqueue_url))
+        app.router.add_post(
+            '/sort/all', lambda _request: sort_all(manager, queueman_session, enqueue_url))
+        app.router.add_post('/resort/all', lambda _request: sort_all(manager,
+                            queueman_session, enqueue_url, resort=True))
         app.router.add_post('/shutdown', shutdown_app)
-
 
         app['shutdown'] = asyncio.Event()
         app['sessions'] = sessions
@@ -136,7 +138,8 @@ async def run_app():
             await app['sleepmgr'].sleep()
             for slug, is_stale in app['stale'].items():
                 if is_stale:
-                    asyncio.create_task(flush_cache(app['crawler_cache'], slug))
+                    asyncio.create_task(flush_cache(
+                        app['crawler_cache'], slug))
                     app['stale'][slug] = False
             await sort_all(manager, queueman_session, enqueue_url)
 
