@@ -100,7 +100,6 @@ async def run_app():
         enqueue_url = get_urls(config)['enqueue']
 
         app = web.Application(client_max_size=1024**2 * 100)
-        app.router.add_post('/shutdown', shutdown_app)
         app.router.add_post(
             '/watchlist/items', lambda request: update_cache(request, 'watch_urls'))
         app.router.add_post(
