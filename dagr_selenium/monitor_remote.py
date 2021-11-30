@@ -107,7 +107,7 @@ async def run_app():
             '/trash/items', lambda request: update_cache(request, 'trash_urls'))
         app.router.add_delete('/resolve/cache/items',
                               purge_resolve_cache_items)
-        app.router.add_post('/resort/all', lambda _request: sort_all(manager, queueman_session, enqueue_url))
+        app.router.add_post('/sort/all', lambda _request: sort_all(manager, queueman_session, enqueue_url))
         app.router.add_post('/shutdown', shutdown_app)
 
 
