@@ -396,7 +396,7 @@ def rip(mode, deviant=None, mval=None, full_crawl=False, disable_filter=False, c
     try:
         pages = crawl_pages(mode, deviant, mval=mval,
                             full_crawl=full_crawl, crawl_offset=crawl_offset, no_crawl=no_crawl)
-        with DAGRCache.with_queue_only(config, mode, deviant, mval, dagr_io=DAGRHTTPIo) as cache:
+        with DAGRCache.with_queue_only(config, mode, deviant, mval, dagr_io=manager.get_dagr().io) as cache:
 
             if kwargs.get('dump_html', None) and not cache.cache_io.dir_exists(dir_name='.html'):
                 logger.info('Creating .html dir')

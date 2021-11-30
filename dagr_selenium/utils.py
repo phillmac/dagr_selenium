@@ -9,7 +9,7 @@ from time import time
 
 from dagr_revamped.DAGRCache import DAGRCache
 from dagr_revamped.exceptions import DagrCacheLockException, DagrException
-from dagr_revamped.utils import (artist_from_url, get_html_name, get_remote_io,
+from dagr_revamped.utils import (artist_from_url, get_html_name,
                                  http_post_raw, sleep)
 from selenium.common.exceptions import NoSuchElementException
 
@@ -182,7 +182,7 @@ async def enqueue_artists(manager, artists, sorted_pages=set()):
     for deviant, pages in artists.items():
         try:
             addst = time()
-            with DAGRCache.with_queue_only(config, 'gallery', deviant) as cache:
+            with DAGRCache.with_queue_only(config, 'gallery', deviant, dagr_io=manager.get_dagr().io) as cache:
                 base_dir_exists = cache.cache_io.dir_exists()
                 logger.log(
                     level=15, msg=f"Sorting pages into {cache.rel_dir}, dir exists: {base_dir_exists}")
