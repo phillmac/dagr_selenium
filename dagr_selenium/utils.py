@@ -63,16 +63,16 @@ async def is_deactivated(deviant, manager):
 
 
 async def query_resolve_cache(resolve_cache, deviant):
-    logger.info(f"Attempting to resolve {deviant}")
+    logger.info('Attempting to resolve %s', deviant)
     try:
         return resolve_cache.query(deviant)
     except DagrException:
-        logger.warning(f"Deviant {deviant} is listed as deactivated")
+        logger.warning('Deviant %s is listed as deactivated', deviant)
         raise
 
 
 async def resolve_query_deviantart(manager, resolve_cache, deviant):
-
+    logger.info('Attempting to resolve %s', deviant)
     with manager.get_browser().get_r_context():
         try:
             deviant, _group = manager.get_dagr().resolve_deviant(deviant)
@@ -80,12 +80,11 @@ async def resolve_query_deviantart(manager, resolve_cache, deviant):
             return deviant
         except DagrException:
             if await is_deactivated(deviant, manager):
-                logger.warning(f"Deviant {deviant} is deactivated")
+                logger.warning('Deviant %s is deactivated', deviant)
                 resolve_cache.add(deviant, deactivated=True)
-                logger.log(
-                    level=15, msg=f"Added {deviant} to deactivated list")
+                logger.log(15, 'Added %s to deactivated list', deviant)
                 raise
-            logger.warning(f"Unable to resolve deviant {deviant}")
+            logger.warning('Unable to resolve deviant %s', deviant)
             raise
 
 
@@ -110,7 +109,8 @@ async def resolve_artists(manager, artists, flush=True):
                 uncached[k] = v
         except DagrException:
             continue
-    if len(uncached) > 0:
+    uncached_count = len(uncached)
+    if uncached_count > 0:
         with manager.get_browser().get_r_context():
             for k, v in uncached.items():
                 try:
