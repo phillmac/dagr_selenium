@@ -133,3 +133,6 @@ dmypy.json
 
 #Test results
 test_results/
+
+#Logs
+*.dagr.log.txt*
