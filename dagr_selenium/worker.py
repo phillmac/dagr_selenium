@@ -88,6 +88,7 @@ async def __main__():
             else:
                 logger.warning('Unable to fetch workitem')
                 await asyncio.sleep(30)
+    await asyncio.sleep(30)
 
 
 if __name__ == '__main__':
