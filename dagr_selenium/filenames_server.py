@@ -571,7 +571,9 @@ async def write_file(request):
             while chunk := tmp.read(block_size):
                 hash_obj.update(chunk)
 
-            if hash_obj.hexdigest() != integrity['hexdigest']:
+            hexdigest = hash_obj.hexdigest()
+            if hexdigest != integrity['hexdigest']:
+                print(f"Failed integrity for {path_param} {filename}. {hexdigest} != {integrity['hexdigest']}")
                 raise JSONHTTPBadRequest(reason='not ok: integrity mismatch')
             tmp.seek(0)
 
