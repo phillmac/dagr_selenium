@@ -6,6 +6,7 @@ from pathlib import Path
 from pprint import pformat
 from threading import Event
 
+from dagr_revamped.dagr_logging import do_shutdown_tasks
 from aiofiles.os import exists
 from selenium.common.exceptions import (InvalidSessionIdException,
                                         WebDriverException)
@@ -93,4 +94,5 @@ async def __main__():
 
 if __name__ == '__main__':
     asyncio.run(__main__())
+    do_shutdown_tasks()
     logging.shutdown()
