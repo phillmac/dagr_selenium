@@ -62,11 +62,15 @@ async def process_item(item):
 async def check_stop_file():
     checkfile = Path('~/worker.dagr.stop').expanduser()
     logger.info('Checkfilepath is %s', str(checkfile))
+    count = 0
     while not stop_event.is_set():
-        await asyncio.sleep(60)
-        if await exists(checkfile):
-            stop_event.set()
-            logger.info('Found stop file')
+        await asyncio.sleep(1)
+        count += 1
+        if count >= 60:
+            count = 0
+            if await exists(checkfile):
+                stop_event.set()
+                logger.info('Found stop file')
 
 
 async def __main__():
@@ -89,6 +93,8 @@ async def __main__():
             else:
                 logger.warning('Unable to fetch workitem')
                 await asyncio.sleep(30)
+    if not stop_event.is_set():
+        stop_event.set()
     await asyncio.sleep(30)
 
 
