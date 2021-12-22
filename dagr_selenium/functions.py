@@ -366,6 +366,8 @@ def dump_callback(page, content, cache, load_more=None, **kwargs):
         if not cache.cache_io.exists(subdir='.html', fname=html_name, update_cache=False):
             cache.cache_io.write_bytes(
                 content, subdir='.html', fname=html_name)
+        else:
+            logger.log(15, "Found existing html file '%s'", html_name)
     except:
         logger.exception('Error while dumping html')
 
