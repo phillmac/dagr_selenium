@@ -359,11 +359,12 @@ def load_comments():
 
 def dump_callback(page, content, cache, load_more=None, **kwargs):
 
-    if load_more:
-        load_comments()
     try:
         html_name = get_html_name(page).name
         if not cache.cache_io.exists(subdir='.html', fname=html_name, update_cache=False):
+            if load_more:
+                load_comments()
+            content = manager.get_browser().response_unbuffered.content
             cache.cache_io.write_bytes(
                 content, subdir='.html', fname=html_name)
         else:
