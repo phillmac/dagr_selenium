@@ -333,7 +333,7 @@ def load_comments():
     load_more_st = time()
     click_total = 0
     while True:
-        click_count += browser.execute_async_script("""
+        click_count = browser.execute_async_script("""
     const done = arguments[0];
     let clickCount = 0;
     let keepRunning = true;
