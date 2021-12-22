@@ -355,7 +355,7 @@ def load_comments():
             break
         click_total += click_count
 
-    logger.info('Clicking load more %s times took %.4f seconds', click_count, time() - load_more_st)
+    logger.info('Clicking load more %s times took %.4f seconds', click_total, time() - load_more_st)
 
 def dump_callback(page, content, cache, load_more=None, **kwargs):
 
