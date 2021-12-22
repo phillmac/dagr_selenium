@@ -70,7 +70,8 @@ async def check_stop_file():
             count = 0
             if await exists(checkfile):
                 stop_event.set()
-                logger.info('Found stop file')
+                logger.info('Found stop-file')
+    logger.info('Stop-file monitoring shutdown')
 
 
 async def __main__():
