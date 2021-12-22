@@ -329,10 +329,10 @@ def rip_pages(cache, pages, full_crawl=False, disable_filter=False, callback=Non
 
 def load_comments():
     browser = manager.get_browser()
-    logger.info('Loading comments')
     load_more_st = time()
     click_total = 0
     while True:
+        logger.info('Loading comments')
         click_count = browser.execute_async_script("""
     const done = arguments[0];
     let clickCount = 0;
