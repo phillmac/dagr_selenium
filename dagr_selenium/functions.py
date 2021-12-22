@@ -337,18 +337,18 @@ def load_comments():
     const done = arguments[0];
     let clickCount = 0;
     let keepRunning = true;
-    new Promise(r => setTimeout(r, 600000)).then(()=>keepRunning=false)
+    (new Promise(r => setTimeout(r, 600000))).then(()=>keepRunning=false);
     (async () => {
     while(keepRunning) {
         const loadMore = Array.from(document.getElementsByTagName('button')).find(b=>b.innerText=='Load More');
-        if (! loadMore) break
+        if (! loadMore) break;
         console.info('Clicking Load More');
         clickCount++;
         loadMore.click();
         await new Promise(r => setTimeout(r, 5000));
     }
     done({clickCount});
-    })()
+    })();
         """,
         timeout=900).get('clickCount')
         if click_count == 0:
