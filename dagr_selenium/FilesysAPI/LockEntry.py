@@ -1,5 +1,6 @@
 import portalocker
 
+
 class LockEntry():
     def __init__(self, diritem):
         self.__diritem = diritem
@@ -18,7 +19,8 @@ class LockEntry():
             'path': str(self.__diritem),
             'lockfile': str(self.__lockfile),
             'expiry': self.__expiry,
-            'created': self.__created
+            'created': self.__created,
+            'expired': self.expired()
         }
 
     def expired(self):
