@@ -12,11 +12,11 @@ variables:
   tag: '$(Build.BuildId)'
 
 stages:
-- stage: Build
-  displayName: Build image
+- stage: Test & build
+  displayName: Test & build image
   jobs:
-  - job: Test
-    displayName: Test
+  - job: RunTests
+    displayName: Run tests
     pool:
       vmImage: ubuntu-latest
     steps:
@@ -25,8 +25,8 @@ stages:
       inputs:
         filePath: 'scripts/run-dagr-revamped-tests.sh'
 
-  - job: Build
-    displayName: Build
+  - job: BuildImage
+    displayName: Build image
     pool:
       vmImage: ubuntu-latest
     steps:
