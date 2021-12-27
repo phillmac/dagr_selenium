@@ -2,6 +2,7 @@
 
 docker run --rm \
     -v /var/run/docker.sock:/var/run/docker.sock \
+    -e "TEST_IO_CLASS=${TEST_IO_CLASS:-default}" \
     python:3.8 \
         bash -c "git clone https://github.com/phillmac/dagr_revamped.git /dagr_revamped \
         && cd /dagr_revamped \
@@ -11,6 +12,7 @@ docker run --rm \
 
 docker run --rm \
     -v /var/run/docker.sock:/var/run/docker.sock \
+    -e "TEST_IO_CLASS=${TEST_IO_CLASS:-default}" \
     python:3.8 \
         bash -c "git clone https://github.com/phillmac/dagr_revamped.git /dagr_revamped \
         && cd /dagr_revamped \
@@ -20,6 +22,7 @@ docker run --rm \
 
 docker run --rm \
     -v /var/run/docker.sock:/var/run/docker.sock \
+    -e "TEST_IO_CLASS=${TEST_IO_CLASS:-default}" \
     python:3.8 \
         bash -c "git clone https://github.com/phillmac/dagr_revamped.git /dagr_revamped \
         && cd /dagr_revamped \
