@@ -1,6 +1,6 @@
 #! /bin/bash
 
-docker run --rm -it \
+docker run --rm \
     -v /var/run/docker.sock:/var/run/docker.sock \
     python:3.8 \
         bash -c "git clone https://github.com/phillmac/dagr_revamped.git /dagr_revamped \
@@ -9,7 +9,7 @@ docker run --rm -it \
         && pip3 install . \
         && python3 tests/intergration/test_file_io.py"
 
-docker run --rm -it \
+docker run --rm \
     -v /var/run/docker.sock:/var/run/docker.sock \
     python:3.8 \
         bash -c "git clone https://github.com/phillmac/dagr_revamped.git /dagr_revamped \
@@ -18,7 +18,7 @@ docker run --rm -it \
         && pip3 install . \
         && python3 tests/intergration/test_lock_io.py"
 
-docker run --rm -it \
+docker run --rm \
     -v /var/run/docker.sock:/var/run/docker.sock \
     python:3.8 \
         bash -c "git clone https://github.com/phillmac/dagr_revamped.git /dagr_revamped \
