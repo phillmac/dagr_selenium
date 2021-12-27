@@ -15,6 +15,16 @@ stages:
 - stage: Build
   displayName: Build image
   jobs:
+  - job: Test
+    displayName: Test
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+
+    - task: Bash@3
+      inputs:
+        filePath: 'scripts/run-dagr-revamped-tests.sh'
+
   - job: Build
     displayName: Build
     pool:
