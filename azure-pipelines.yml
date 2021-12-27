@@ -15,8 +15,8 @@ stages:
 - stage: TestAndBuild
   displayName: Test & build image
   jobs:
-  - job: RunTests
-    displayName: Run tests
+  - job: RunTestsDefaultIO
+    displayName: Run tests with default io class
     pool:
       vmImage: ubuntu-latest
     steps:
@@ -24,6 +24,19 @@ stages:
     - task: Bash@3
       inputs:
         filePath: 'scripts/run-dagr-revamped-tests.sh'
+
+  - job: RunTestsHTTPIO
+    displayName: Run tests with http io class
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+
+    - task: Bash@3
+      inputs:
+        filePath: 'scripts/run-dagr-revamped-tests.sh'
+      env:
+        TEST_IO_CLASS: http
+
 
   - job: BuildImage
     displayName: Build image
