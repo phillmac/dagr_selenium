@@ -18,4 +18,4 @@ docker run --rm \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -e "TEST_IO_CLASS=${TEST_IO_CLASS:-default}" \
     phillmac/dagr_revamped_tests \
-        python3 tests/intergration/test_dir_io.py"
+        python3 tests/intergration/test_dir_io.py
