@@ -337,6 +337,7 @@ async def update_json_gz(request):
 
 
 async def mk_dir(request):
+    app = request.app
     params = await request.json()
     print('POST /dir', params)
 
@@ -352,11 +353,11 @@ async def mk_dir(request):
     subdir = None
 
     try:
-        subdir = await get_subdir(request.app, path_param)
+        subdir = await get_subdir(app, path_param)
     except StopAsyncIteration:
         if dir_name is None:
             dir_item = PosixPath(path_param)
-            if not str(PosixPath.cwd()) == os_path.commonpath((Path.cwd(), await abspath(dir_item))):
+            if not str(app['cwd']) == os_path.commonpath((app['cwd'], await abspath(dir_item))):
                 raise JSONHTTPBadRequest(
                     reason='not ok: bad relative new dir path')
         else:
@@ -509,6 +510,7 @@ async def fetch_json(request):
 
 
 async def rm_dir(request):
+    app = request.app
     params = await request.json()
 
     path_param = params.get('path', None)
@@ -525,11 +527,11 @@ async def rm_dir(request):
     subdir = None
 
     try:
-        subdir = await get_subdir(request.app, path_param)
+        subdir = await get_subdir(app, path_param)
     except StopAsyncIteration:
         if dir_name is None:
             dir_item = PosixPath(path_param)
-            if not str(PosixPath.cwd()) == os_path.commonpath((Path.cwd(), await abspath(dir_item))):
+            if not str(app['cwd']) == os_path.commonpath((app['cwd'], await abspath(dir_item))):
                 raise JSONHTTPBadRequest(
                     reason='not ok: bad relative rm dir path')
         else:

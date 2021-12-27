@@ -13,6 +13,7 @@ from dagr_selenium.SleepMgr import SleepMgr
 from dagr_selenium.version import version
 from .api import APIManager
 
+
 def shutdown_app(request):
     request.app['shutdown'].set()
     request.app['sleepmgr'].cancel_sleep()
@@ -72,37 +73,62 @@ async def run_app():
     app = web.Application(client_max_size=1024**2 * environ.get(
         'CLIENT_MAX_SIZE', 200))
     app.router.add_get('/ping', lambda request: json_response('pong'))
-    app.router.add_get('/json', lambda request: api_manager.handle_request(request, 'fetch_json'))
-    app.router.add_get('/file_contents', lambda request: api_manager.handle_request(request, 'fetch_contents'))
-    app.router.add_get('/file_contents_b', lambda request: api_manager.handle_request(request, 'fetch_contents_b'))
-    app.router.add_get('/file/exists', lambda request: api_manager.handle_request(request, 'file_exists'))
-    app.router.add_get('/file/stat', lambda request: api_manager.handle_request(request, 'file_stat'))
-    app.router.add_get('/dir', lambda request: api_manager.handle_request(request, 'list_dir'))
-    app.router.add_get('/dir/exists', lambda request: api_manager.handle_request(request, 'dir_exists'))
-    app.router.add_get('/dir/lock', lambda request: api_manager.handle_request(request, 'query_lock'))
+    app.router.add_get(
+        '/json', lambda request: api_manager.handle_request(request, 'fetch_json'))
+    app.router.add_get(
+        '/file_contents', lambda request: api_manager.handle_request(request, 'fetch_contents'))
+    app.router.add_get(
+        '/file_contents_b', lambda request: api_manager.handle_request(request, 'fetch_contents_b'))
+    app.router.add_get(
+        '/file/exists', lambda request: api_manager.handle_request(request, 'file_exists'))
+    app.router.add_get(
+        '/file/stat', lambda request: api_manager.handle_request(request, 'file_stat'))
+    app.router.add_get(
+        '/dir', lambda request: api_manager.handle_request(request, 'list_dir'))
+    app.router.add_get(
+        '/dir/exists', lambda request: api_manager.handle_request(request, 'dir_exists'))
+    app.router.add_get(
+        '/dir/lock', lambda request: api_manager.handle_request(request, 'query_lock'))
     app.router.add_get(
         '/locks', lambda request: json_response(dict((k, request.app['locks_cache'][k].details) for k in request.app['locks_cache'])))
-    app.router.add_post('/dir', lambda request: api_manager.handle_request(request, 'mk_dir'))
-    app.router.add_delete('/dir', lambda request: api_manager.handle_request(request, 'rm_dir'))
-    app.router.add_delete('/dir/lock', lambda request: api_manager.handle_request(request, 'release_lock'))
-    app.router.add_patch('/dir', lambda request: api_manager.handle_request(request, 'rename_dir'))
-    app.router.add_post('/file/utime', lambda request: api_manager.handle_request(request, 'update_time'))
-    app.router.add_post('/dir/lock', lambda request: api_manager.handle_request(request, 'aquire_lock'))
-    app.router.add_patch('/dir/lock', lambda request: api_manager.handle_request(request, 'refresh_lock'))
-    app.router.add_post('/json', lambda request: api_manager.handle_request(request, 'update_json'))
-    app.router.add_post('/json_gz', lambda request: api_manager.handle_request(request, 'update_json_gz'))
-    app.router.add_post('/file', lambda request: api_manager.handle_request(request, 'write_file'))
-    app.router.add_post('/replace', lambda request: api_manager.handle_request(request, 'replace_item'))
-    app.router.add_post('/logger/create', lambda request: api_manager.handle_request(request, 'create_logger'))
-    app.router.add_post('/logger/append', lambda request: api_manager.handle_request(request, 'handle_logger'))
-    app.router.add_post('/logger/remove', lambda request: api_manager.handle_request(request, 'remove_logger'))
-    app.router.add_get('/logger/exists', lambda request: api_manager.handle_request(request, 'query_logger'))
-    app.router.add_post('/shutdown', lambda request: api_manager.handle_request(request, 'shutdown_app'))
+    app.router.add_post(
+        '/dir', lambda request: api_manager.handle_request(request, 'mk_dir'))
+    app.router.add_delete(
+        '/dir', lambda request: api_manager.handle_request(request, 'rm_dir'))
+    app.router.add_delete(
+        '/dir/lock', lambda request: api_manager.handle_request(request, 'release_lock'))
+    app.router.add_patch(
+        '/dir', lambda request: api_manager.handle_request(request, 'rename_dir'))
+    app.router.add_post(
+        '/file/utime', lambda request: api_manager.handle_request(request, 'update_time'))
+    app.router.add_post(
+        '/dir/lock', lambda request: api_manager.handle_request(request, 'aquire_lock'))
+    app.router.add_patch(
+        '/dir/lock', lambda request: api_manager.handle_request(request, 'refresh_lock'))
+    app.router.add_post(
+        '/json', lambda request: api_manager.handle_request(request, 'update_json'))
+    app.router.add_post(
+        '/json_gz', lambda request: api_manager.handle_request(request, 'update_json_gz'))
+    app.router.add_post(
+        '/file', lambda request: api_manager.handle_request(request, 'write_file'))
+    app.router.add_post(
+        '/replace', lambda request: api_manager.handle_request(request, 'replace_item'))
+    app.router.add_post(
+        '/logger/create', lambda request: api_manager.handle_request(request, 'create_logger'))
+    app.router.add_post(
+        '/logger/append', lambda request: api_manager.handle_request(request, 'handle_logger'))
+    app.router.add_post(
+        '/logger/remove', lambda request: api_manager.handle_request(request, 'remove_logger'))
+    app.router.add_get(
+        '/logger/exists', lambda request: api_manager.handle_request(request, 'query_logger'))
+    app.router.add_post(
+        '/shutdown', lambda request: api_manager.handle_request(request, 'shutdown_app'))
 
     app['dirs_cache'] = dict()
     app['loggers_cache'] = dict()
     app['locks_cache'] = dict()
-    app['dirs_cache'][tuple()] = Path.cwd()
+    app['cwd'] = Path.cwd()
+    app['dirs_cache'][tuple()] = app['cwd']
     app['shutdown'] = Event()
     app['sleepmgr'] = SleepMgr(app)
     app['sessions'] = dict()
