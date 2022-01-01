@@ -46,7 +46,8 @@ stages:
       - task: Bash@3
         displayName: Build DAGR tests image
         inputs:
-          inline: docker build . -t phillmac/dagr_revamped_tests -f scripts/dagr_revamped.dockerfile
+          targetType: 'inline'
+          script: 'docker build . -t phillmac/dagr_revamped_tests -f scripts/dagr_revamped.dockerfile'
 
       - task: Bash@3
         displayName: Run HTTP IO tests
