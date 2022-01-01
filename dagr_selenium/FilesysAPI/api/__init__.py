@@ -11,7 +11,7 @@ class APIManager():
     }
 
     @classmethod
-    async def handle_request(request, handler_method):
+    async def handle_request(self, request, handler_method):
         if handler := APIManager.api_versions.get(request.headers.get('api-version', 'v0'), None) is None:
             raise JSONHTTPBadRequest(reason='Invalid api version')
 

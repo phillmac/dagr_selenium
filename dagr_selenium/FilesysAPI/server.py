@@ -68,60 +68,61 @@ async def cleanup_caches(app):
 async def run_app():
     load_dotenv()
     mimetypes.init()
+    api_manager = APIManager()
 
     app = web.Application(client_max_size=1024**2 * environ.get(
         'CLIENT_MAX_SIZE', 200))
     app.router.add_get('/ping', lambda request: json_response('pong'))
     app.router.add_get(
-        '/json', lambda request: APIManager.handle_request(request, 'fetch_json'))
+        '/json', lambda request: api_manager.handle_request(request, 'fetch_json'))
     app.router.add_get(
-        '/file_contents', lambda request: APIManager.handle_request(request, 'fetch_contents'))
+        '/file_contents', lambda request: api_manager.handle_request(request, 'fetch_contents'))
     app.router.add_get(
-        '/file_contents_b', lambda request: APIManager.handle_request(request, 'fetch_contents_b'))
+        '/file_contents_b', lambda request: api_manager.handle_request(request, 'fetch_contents_b'))
     app.router.add_get(
-        '/file/exists', lambda request: APIManager.handle_request(request, 'file_exists'))
+        '/file/exists', lambda request: api_manager.handle_request(request, 'file_exists'))
     app.router.add_get(
-        '/file/stat', lambda request: APIManager.handle_request(request, 'file_stat'))
+        '/file/stat', lambda request: api_manager.handle_request(request, 'file_stat'))
     app.router.add_get(
-        '/dir', lambda request: APIManager.handle_request(request, 'list_dir'))
+        '/dir', lambda request: api_manager.handle_request(request, 'list_dir'))
     app.router.add_get(
-        '/dir/exists', lambda request: APIManager.handle_request(request, 'dir_exists'))
+        '/dir/exists', lambda request: api_manager.handle_request(request, 'dir_exists'))
     app.router.add_get(
-        '/dir/lock', lambda request: APIManager.handle_request(request, 'query_lock'))
+        '/dir/lock', lambda request: api_manager.handle_request(request, 'query_lock'))
     app.router.add_get(
         '/locks', lambda request: json_response(dict((k, request.app['locks_cache'][k].details) for k in request.app['locks_cache'])))
     app.router.add_post(
-        '/dir', lambda request: APIManager.handle_request(request, 'mk_dir'))
+        '/dir', lambda request: api_manager.handle_request(request, 'mk_dir'))
     app.router.add_delete(
-        '/dir', lambda request: APIManager.handle_request(request, 'rm_dir'))
+        '/dir', lambda request: api_manager.handle_request(request, 'rm_dir'))
     app.router.add_delete(
-        '/dir/lock', lambda request: APIManager.handle_request(request, 'release_lock'))
+        '/dir/lock', lambda request: api_manager.handle_request(request, 'release_lock'))
     app.router.add_patch(
-        '/dir', lambda request: APIManager.handle_request(request, 'rename_dir'))
+        '/dir', lambda request: api_manager.handle_request(request, 'rename_dir'))
     app.router.add_post(
-        '/file/utime', lambda request: APIManager.handle_request(request, 'update_time'))
+        '/file/utime', lambda request: api_manager.handle_request(request, 'update_time'))
     app.router.add_post(
-        '/dir/lock', lambda request: APIManager.handle_request(request, 'aquire_lock'))
+        '/dir/lock', lambda request: api_manager.handle_request(request, 'aquire_lock'))
     app.router.add_patch(
-        '/dir/lock', lambda request: APIManager.handle_request(request, 'refresh_lock'))
+        '/dir/lock', lambda request: api_manager.handle_request(request, 'refresh_lock'))
     app.router.add_post(
-        '/json', lambda request: APIManager.handle_request(request, 'update_json'))
+        '/json', lambda request: api_manager.handle_request(request, 'update_json'))
     app.router.add_post(
-        '/json_gz', lambda request: APIManager.handle_request(request, 'update_json_gz'))
+        '/json_gz', lambda request: api_manager.handle_request(request, 'update_json_gz'))
     app.router.add_post(
-        '/file', lambda request: APIManager.handle_request(request, 'write_file'))
+        '/file', lambda request: api_manager.handle_request(request, 'write_file'))
     app.router.add_post(
-        '/replace', lambda request: APIManager.handle_request(request, 'replace_item'))
+        '/replace', lambda request: api_manager.handle_request(request, 'replace_item'))
     app.router.add_post(
-        '/logger/create', lambda request: APIManager.handle_request(request, 'create_logger'))
+        '/logger/create', lambda request: api_manager.handle_request(request, 'create_logger'))
     app.router.add_post(
-        '/logger/append', lambda request: APIManager.handle_request(request, 'handle_logger'))
+        '/logger/append', lambda request: api_manager.handle_request(request, 'handle_logger'))
     app.router.add_post(
-        '/logger/remove', lambda request: APIManager.handle_request(request, 'remove_logger'))
+        '/logger/remove', lambda request: api_manager.handle_request(request, 'remove_logger'))
     app.router.add_get(
-        '/logger/exists', lambda request: APIManager.handle_request(request, 'query_logger'))
+        '/logger/exists', lambda request: api_manager.handle_request(request, 'query_logger'))
     app.router.add_post(
-        '/shutdown', lambda request: APIManager.handle_request(request, 'shutdown_app'))
+        '/shutdown', lambda request: api_manager.handle_request(request, 'shutdown_app'))
 
     app['dirs_cache'] = dict()
     app['loggers_cache'] = dict()
