@@ -14,13 +14,14 @@ from os import utime
 from pathlib import Path, PosixPath, PurePosixPath
 from shutil import copyfileobj
 from tempfile import TemporaryFile
-from time import mktime, time, time_ns
+from time import mktime, time_ns
 
 import aiofiles
-from aiofiles.os import (abspath, exists, makedirs, remove, rename, replace,
-                         rmdir, scandir, stat)
+from aiofiles.os import (abspath, exists, makedirs, rename, replace, rmdir,
+                         scandir)
+from aiohttp.web import HTTPNotFound, Response
 from aiohttp.web_response import json_response
-from dagr_selenium.JSONHTTPErrors import JSONHTTPBadRequest
+from dagr_selenium.JSONHTTPErrors import JSONHTTPBadRequest, JSONHTTPNotFound
 
 from ..LockEntry import LockEntry
 from ..utils import (check_update_fn_cache, get_subdir, load_json, save_json,
@@ -220,9 +221,9 @@ async def fetch_contents(request):
 
     dest = subdir.joinpath(PurePosixPath(filename).name)
     if not await exists(dest):
-        raise web.HTTPNotFound(reason='not ok: filename does not exist')
+        raise HTTPNotFound(reason='not ok: filename does not exist')
     async with aiofiles.open(dest, 'r') as fh:
-        resp = web.Response(text=await fh.read())
+        resp = Response(text=await fh.read())
         resp.enable_compression()
         return resp
 
@@ -250,14 +251,14 @@ async def fetch_contents_b(request):
 
     dest = subdir.joinpath(PurePosixPath(filename).name)
     if not await exists(dest):
-        raise web.HTTPNotFound(reason='not ok: filename does not exist')
+        raise HTTPNotFound(reason='not ok: filename does not exist')
     async with aiofiles.open(dest, 'rb') as fh:
         ct, _enc = mimetypes.guess_type(dest)
 
         headers = {
             'Content-Disposition': f'inline; filename="{dest.name}"'
         }
-        resp = web.Response(body=await fh.read(), content_type=ct, headers=headers)
+        resp = Response(body=await fh.read(), content_type=ct, headers=headers)
         resp.enable_compression()
         return resp
 
@@ -503,7 +504,7 @@ async def fetch_json(request):
 
     dest = subdir.joinpath(PurePosixPath(filename).name)
     if not await exists(dest):
-        raise web.HTTPNotFound(reason='not ok: filename not found')
+        raise JSONHTTPNotFound(reason='not ok: filename not found')
     resp = json_response(await load_json(dest))
     resp.enable_compression()
     return resp

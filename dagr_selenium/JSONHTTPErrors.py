@@ -1,6 +1,7 @@
 from json import dumps
 
-from aiohttp.web import HTTPBadRequest, HTTPInternalServerError
+from aiohttp.web import HTTPBadRequest, HTTPInternalServerError, HTTPNotFound
+
 
 class JSONHTTPInternalServerError(HTTPInternalServerError):
     def __init__(
@@ -15,6 +16,17 @@ class JSONHTTPInternalServerError(HTTPInternalServerError):
 
 
 class JSONHTTPBadRequest(HTTPBadRequest):
+    def __init__(
+        self,
+        *,
+        headers=None,
+        reason=None,
+    ) -> None:
+        super().__init__(
+            headers=headers,  text=dumps(reason), content_type='application/json'
+        )
+
+class JSONHTTPNotFound(HTTPNotFound):
     def __init__(
         self,
         *,

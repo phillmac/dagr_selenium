@@ -1,6 +1,6 @@
 import json
 from io import StringIO
-from pathlib import Path, PosixPath, PurePosixPath
+from pathlib import Path, PurePosixPath
 
 import aiofiles
 from aiofiles.os import exists, remove, rename, scandir, stat
