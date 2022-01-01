@@ -15,52 +15,51 @@ stages:
 - stage: TestAndBuild
   displayName: Test & build image
   jobs:
-  - job: RunTestsDefaultIO
-    displayName: Run tests with default io class
-    pool:
-      vmImage: ubuntu-latest
-    steps:
 
-    - task: Bash@3
-      inputs:
-        filePath: 'scripts/run-dagr-revamped-tests.sh'
+    - job: BuildImage
+      displayName: Build image
+      pool:
+        vmImage: ubuntu-latest
+      steps:
 
-  - job: RunTestsHTTPIO
-    displayName: Run tests with http io class
-    pool:
-      vmImage: ubuntu-latest
-    steps:
+      - task: Docker@2
+        displayName: Build selenium image
+        inputs:
+          containerRegistry: 'Docker Hub'
+          repository: 'phillmac/dagr_selenium'
+          command: build
+          dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
+          tags: |
+            latest
+            $(tag)
 
-    - task: Bash@3
-      inputs:
-        filePath: 'scripts/run-dagr-revamped-tests.sh'
-      env:
-        TEST_IO_CLASS: http
+      - task: Docker@2
+        displayName: Push selenium image
+        inputs:
+          containerRegistry: 'Docker Hub'
+          repository: 'phillmac/dagr_selenium'
+          command: 'push'
+          tags: |
+            latest
+            $(tag)
 
+      - task: Bash@3
+        displayName: Build DAGR tests image
+        inputs:
+          inline: docker build . -t phillmac/dagr_revamped_tests -f scripts/dagr_revamped.dockerfile
 
-  - job: BuildImage
-    displayName: Build image
-    pool:
-      vmImage: ubuntu-latest
-    steps:
+      - task: Bash@3
+        displayName: Run HTTP IO tests
+        inputs:
+          filePath: 'scripts/run-dagr-revamped-tests.sh'
+        env:
+          TEST_IO_CLASS: http
+          IMAGE_TAG: $(tag)
 
-    - task: Docker@2
-      displayName: Build an image
-      inputs:
-        containerRegistry: 'Docker Hub'
-        repository: 'phillmac/dagr_selenium'
-        command: build
-        dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
-        tags: |
-          latest
-          $(tag)
+      - task: Bash@3
+        displayName: Run default IO tests
+        inputs:
+          filePath: 'scripts/run-dagr-revamped-tests.sh'
+        env:
+          IMAGE_TAG: $(tag)
 
-    - task: Docker@2
-      displayName: Push image
-      inputs:
-        containerRegistry: 'Docker Hub'
-        repository: 'phillmac/dagr_selenium'
-        command: 'push'
-        tags: |
-          latest
-          $(tag)
