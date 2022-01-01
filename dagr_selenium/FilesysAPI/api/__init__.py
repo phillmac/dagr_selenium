@@ -3,8 +3,8 @@ from dagr_selenium.JSONHTTPErrors import (JSONHTTPBadRequest,
 
 
 class APIManager():
-    import APIv0
-    import APIv1
+    from . import APIv0
+    from . import APIv1
     api_versions = {
         'v0': APIv0,
         'v1': APIv1
