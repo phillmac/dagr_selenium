@@ -12,12 +12,15 @@ class APIManager():
 
     @classmethod
     async def handle_request(self, request, handler_method):
-        if handler := APIManager.api_versions.get(request.headers.get('api-version', 'v0'), None) is None:
+        handler_version = request.headers.get('api-version', 'v0')
+        handler = APIManager.api_versions.get(handler_version, None)
+        if handler is None:
             raise JSONHTTPBadRequest(reason='Invalid api version')
 
         if not hasattr(handler, handler_method):
             print(dir(handler))
-            print(f"Invalid handler name:'{handler_method}'")
+            print(type(handler))
+            print(f"Invalid handler name:'{handler_method}'. Handler version: {handler_version}")
             raise JSONHTTPInternalServerError(reason='Invalid handler name')
 
         return await (getattr(handler, handler_method)(request))
