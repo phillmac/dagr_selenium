@@ -146,6 +146,7 @@ async def run_app():
 
     names = sorted(str(s.name) for s in runner.sites)
     print('DAGR Selenium Filenames Server Version', version)
+    print('Working dir:',  app['cwd'])
     print(
         "======== Running on {} ========\n"
         "(Press CTRL+C to quit)".format(", ".join(names))
