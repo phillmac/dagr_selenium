@@ -1,5 +1,5 @@
 import portalocker
-
+from time import time
 
 class LockEntry():
     def __init__(self, diritem):
