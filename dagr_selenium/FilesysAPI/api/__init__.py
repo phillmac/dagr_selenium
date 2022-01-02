@@ -16,7 +16,7 @@ class APIManager():
             raise JSONHTTPBadRequest(reason='Invalid api version')
 
         if not hasattr(handler, handler_method):
-            dir(handler)
+            print(dir(handler))
             print(f"Invalid handler name:'{handler_method}'")
             raise JSONHTTPInternalServerError(reason='Invalid handler name')
 
