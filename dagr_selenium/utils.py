@@ -75,7 +75,7 @@ async def resolve_query_deviantart(manager, resolve_cache, deviant):
     logger.info('Attempting to resolve %s', deviant)
     with manager.get_browser().get_r_context():
         try:
-            deviant, _group = manager.get_dagr().resolve_deviant(deviant)
+            deviant, _group = await manager.get_dagr().resolve_deviant(deviant)
             resolve_cache.add(deviant)
             return deviant
         except DagrException:

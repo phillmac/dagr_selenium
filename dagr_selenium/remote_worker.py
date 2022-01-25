@@ -37,7 +37,7 @@ async def process_item(app, manager, item):
 
     app['work_items'][item_key] = item
 
-    deviant = item.deviant if item.resolved else resolve_deviant(
+    deviant = item.deviant if item.resolved else await resolve_deviant(
         manager, item.deviant)
 
     task_queue = asyncio.Queue()
