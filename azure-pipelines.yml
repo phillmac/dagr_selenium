@@ -3,7 +3,7 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/docker
 
 trigger:
-- develop
+- feat/async
 
 resources:
 - repo: self
@@ -30,7 +30,7 @@ stages:
           command: build
           dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
           tags: |
-            latest
+            latest-async
             $(tag)
 
       - task: Docker@2
@@ -40,7 +40,7 @@ stages:
           repository: 'phillmac/dagr_selenium'
           command: 'push'
           tags: |
-            latest
+            latest-async
             $(tag)
 
       - task: Bash@3
@@ -62,5 +62,6 @@ stages:
         inputs:
           filePath: 'scripts/run-dagr-revamped-tests.sh'
         env:
+          TEST_IO_CLASS: default
           IMAGE_TAG: $(tag)
 
