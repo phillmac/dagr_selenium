@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from gc import get_objects
+from gc import garbage, get_objects
 from json import dumps
 from os import environ
 from pathlib import Path
@@ -106,5 +106,6 @@ if __name__ == '__main__':
     asyncio.run(__main__())
     logger.info('Worker shutting down')
     logger.debug(pformat(get_objects()))
+    logger.debug(pformat(garbage))
     do_shutdown_tasks()
     logging.shutdown()
