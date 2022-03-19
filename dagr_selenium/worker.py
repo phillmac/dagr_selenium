@@ -64,6 +64,8 @@ async def check_stop_file():
     checkfile = Path('~/worker.dagr.stop').expanduser()
     logger.info('Checkfilepath is %s', str(checkfile))
     count = 0
+    if await exists(checkfile):
+        checkfile.unlink()
     while not stop_event.is_set():
         if await exists(checkfile):
             stop_event.set()
