@@ -1,13 +1,14 @@
 import asyncio
 import logging
+from gc import get_objects
 from json import dumps
 from os import environ
 from pathlib import Path
 from pprint import pformat
 from threading import Event
 
-from dagr_revamped.dagr_logging import do_shutdown_tasks
 from aiofiles.os import exists
+from dagr_revamped.dagr_logging import do_shutdown_tasks
 from selenium.common.exceptions import (InvalidSessionIdException,
                                         WebDriverException)
 
@@ -64,13 +65,13 @@ async def check_stop_file():
     logger.info('Checkfilepath is %s', str(checkfile))
     count = 0
     while not stop_event.is_set():
-        await asyncio.sleep(1)
-        count += 1
-        if count >= 60:
-            count = 0
-            if await exists(checkfile):
-                stop_event.set()
-                logger.info('Found stop-file')
+        if await exists(checkfile):
+            stop_event.set()
+            logger.info('Found stop-file')
+        while count >= 60:
+            await asyncio.sleep(1)
+            count += 1
+        count = 0
     logger.info('Stop-file monitoring shutdown')
 
 
@@ -78,6 +79,8 @@ async def __main__():
     bg_tsk = BackgroundTask()
     await bg_tsk.run(check_stop_file, ())
     manager.set_stop_check(stop_event.is_set)
+    await asyncio.sleep(0)
+
     with manager.get_dagr() as dagr:
         logger.info('Flushing previous errors')
         flush_errors_to_queue()
@@ -102,5 +105,6 @@ async def __main__():
 if __name__ == '__main__':
     asyncio.run(__main__())
     logger.info('Worker shutting down')
+    logger.debug(pformat(get_objects()))
     do_shutdown_tasks()
     logging.shutdown()
