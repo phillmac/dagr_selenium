@@ -107,7 +107,7 @@ async def __main__():
 if __name__ == '__main__':
     asyncio.run(__main__())
     logger.info('Worker shutting down')
-    logger.debug(pformat(get_objects()))
+    # logger.debug(pformat(get_objects()))
     logger.debug(pformat(garbage))
     do_shutdown_tasks()
     logging.shutdown()
