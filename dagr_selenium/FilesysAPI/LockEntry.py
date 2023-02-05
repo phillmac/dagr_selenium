@@ -6,7 +6,7 @@ class LockEntry():
         self.__diritem = diritem
         self.__lockfile = diritem.joinpath('.lock')
         self.__lock = portalocker.Lock(
-            self.__lockfile, fail_when_locked=True, flags=portalocker.LOCK_EX)
+            self.__lockfile, fail_when_locked=True, flags=portalocker.LockFlags.EXCLUSIVE | portalocker.LockFlags.NON_BLOCKING)
         self.__expiry = time() + 300
         self.__created = time()
 

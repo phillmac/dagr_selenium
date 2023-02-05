@@ -558,8 +558,6 @@ async def query_lock(request):
 
     path_param = params.get('path', None)
 
-    print('query lock', params)
-
     if path_param is None:
         raise JSONHTTPBadRequest(reason='not ok: path param missing')
 
@@ -583,8 +581,6 @@ async def aquire_lock(request):
     print('POST /dir/lock', params)
 
     path_param = params.get('path', None)
-
-    print(params)
 
     if path_param is None:
         raise JSONHTTPBadRequest(reason='not ok: path param missing')
