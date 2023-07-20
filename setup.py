@@ -17,7 +17,7 @@ setup(
         'dagr_revamped @ git+https://github.com/phillmac/dagr_revamped@0.2.235.dev9#egg=dagr_revamped',
         'selenium==3.141.0',
         'aiofiles @ git+https://github.com/phillmac/aiofiles@0.13.0dev0',
-        'aiohttp==3.7.4.post0',
+        'aiohttp==3.8.5',
         'aiojobs==0.3.0',
         'portalocker==2.7.0'
     ],
