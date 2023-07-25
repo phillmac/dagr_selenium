@@ -7,7 +7,7 @@ beautifulsoup4==4.9.3
 calmjs==3.4.1
 calmjs.parse==1.2.5
 calmjs.types==1.0.1
-certifi==2022.12.7
+certifi==2023.7.22
 chardet==4.0.0
 dagr_revamped @ git+https://github.com/phillmac/dagr_revamped@0.2.235.dev9#egg=dagr_revamped
 deviantart @ git+https://github.com/phillmac/deviantart@c21ce195b466618ae16a9146412b3b713be71ef5#egg=deviantart
